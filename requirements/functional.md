@@ -15,4 +15,4 @@ edges and forms a simple (non-self-intersecting) polygon that closes within a co
 tolerance. Invalid input returns a specific error identifying the violated rule:
 `too_few_edges`, `non_positive_length`, `angle_out_of_range`, `self_intersecting`, or
 `not_closed`. Interior angles are expressed in degrees within the open range `(0, 360)`. The
-closure tolerance is provided externally (see configuration requirements).
+closure tolerance is a caller-supplied parameter in meters (default 0.02).

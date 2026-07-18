@@ -9,6 +9,7 @@ the vertices and validates the outline, returning a ``Polygon`` or raising ``Sur
 import math
 
 import pytest
+
 from ceiling_planner.geometry.surface import (
     Edge,
     Polygon,
@@ -27,7 +28,10 @@ def test_accepts_square_and_reconstructs_vertices():
 
     # Then a closed polygon with the four expected corners is returned
     assert isinstance(polygon, Polygon)
-    assert polygon.vertices == pytest.approx([(0.0, 0.0), (4.0, 0.0), (4.0, 4.0), (0.0, 4.0)])
+    expected = [(0.0, 0.0), (4.0, 0.0), (4.0, 4.0), (0.0, 4.0)]
+    assert len(polygon.vertices) == len(expected)
+    for got, want in zip(polygon.vertices, expected, strict=True):
+        assert got == pytest.approx(want)
 
 
 @pytest.mark.req("FUNC-SURFACE-INPUT-001")
@@ -46,9 +50,10 @@ def test_accepts_non_rectangular_l_shape():
     polygon = validate_surface(edges)
 
     # Then the six vertices of the L are reconstructed and the outline is accepted
-    assert polygon.vertices == pytest.approx(
-        [(0.0, 0.0), (4.0, 0.0), (4.0, 2.0), (2.0, 2.0), (2.0, 4.0), (0.0, 4.0)]
-    )
+    expected = [(0.0, 0.0), (4.0, 0.0), (4.0, 2.0), (2.0, 2.0), (2.0, 4.0), (0.0, 4.0)]
+    assert len(polygon.vertices) == len(expected)
+    for got, want in zip(polygon.vertices, expected, strict=True):
+        assert got == pytest.approx(want)
 
 
 @pytest.mark.req("FUNC-SURFACE-INPUT-001")

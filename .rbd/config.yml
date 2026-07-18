@@ -1,7 +1,7 @@
 id_format:
   categories: [FUNC, TECH, PERF, UI, CONF]
-  levels: ["domain", "feature"]       # e.g. domain=SURFACE, feature=SAISIE
-  example: "FUNC-SURFACE-SAISIE-001"
+  levels: ["domain", "feature"]       # e.g. domain=SURFACE, feature=INPUT
+  example: "FUNC-SURFACE-INPUT-001"
 
 test_tagging:
   language: python

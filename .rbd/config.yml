@@ -1,0 +1,11 @@
+id_format:
+  categories: [FUNC, TECH, PERF, UI, CONF]
+  levels: ["domain", "feature"]       # e.g. domain=SURFACE, feature=SAISIE
+  example: "FUNC-SURFACE-SAISIE-001"
+
+test_tagging:
+  language: python
+  convention: "@pytest.mark.req('{id}')"
+
+linter:
+  command: "ruff check ."

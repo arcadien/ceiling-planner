@@ -1,0 +1,10 @@
+plan_files:
+  # Project workflow files — always present at these paths
+  - .rbd/config.yml
+  - .rbd/plan-files.yml
+  - requirements/functional.md
+  - requirements/technical.md
+  - requirements/performance.md
+  - requirements/ui.md
+  - requirements/configuration.md
+  - audits/exclusions.yml

@@ -50,10 +50,14 @@ def compute_montants(polygon: Polygon, spacing_m: float = _DEFAULT_SPACING_M) ->
 
 
 def _montant_offsets(y_min: float, y_max: float, spacing_m: float) -> list[float]:
-    """Positions from ``y_min`` every ``spacing_m`` up to (and including) ``y_max``."""
+    """Positions from ``y_min`` every ``spacing_m`` up to (and including) ``y_max``.
+
+    The stepped positions stop short of ``y_max`` by a small epsilon so floating-point noise in
+    a reconstructed extent cannot add a montant that duplicates the flush far-wall one.
+    """
     offsets: list[float] = []
     step = 0
-    while y_min + step * spacing_m < y_max:
+    while y_min + step * spacing_m < y_max - _BOUNDARY_INSET_M:
         offsets.append(y_min + step * spacing_m)
         step += 1
     offsets.append(y_max)

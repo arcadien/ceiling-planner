@@ -29,7 +29,7 @@ def test_plan_returns_full_material_plan_for_valid_outline():
     for got, want in zip(data["vertices"], expected_vertices, strict=True):
         assert got == pytest.approx(want)
     assert len(data["montants"]) >= 1
-    assert len(data["rails"]) == 2
+    assert len(data["rails"]) == 4  # one rail per perimeter wall
     assert data["plates"]["plate_count"] >= 1
     assert data["plates"]["pieces"][0]["kind"] in {"full", "cut", "reused"}
 

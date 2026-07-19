@@ -208,13 +208,12 @@ function draw(data) {
     }
   }
 
-  // Rails overlay (toggleable): thick segments on every non-parallel outline edge.
+  // Rails overlay (toggleable): thick segments flush to every perimeter edge.
   if (document.getElementById("toggle-rails").checked) {
     ctx.strokeStyle = "#444";
     ctx.lineWidth = 4;
     for (let i = 0; i < v.length; i++) {
       const [x1, y1] = v[i], [x2, y2] = v[(i + 1) % v.length];
-      if (Math.abs(y2 - y1) < 1e-9) continue;
       ctx.beginPath(); ctx.moveTo(px(x1), py(y1)); ctx.lineTo(px(x2), py(y2)); ctx.stroke();
     }
   }

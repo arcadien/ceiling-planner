@@ -11,8 +11,10 @@
 add and remove outline edges (length and interior angle), set the parameters, and request a
 plan. On a successful response it draws a schema on a canvas: the outline, the montants, the
 bearing-wall rails, and the plasterboard pieces colored by kind (full, cut, reused), with a
-legend and the plate count. A validation error is shown to the user as a readable message. The
-page is self-contained (its script and styles are served by the application, no external CDN).
+legend. It displays indicators for the total montant length, the total rail length, and the
+plate count, and offers toggles to show or hide the montant and rail overlays on the schema. A
+validation error is shown to the user as a readable message. The page is self-contained (its
+script and styles are served by the application, no external CDN).
 
 ### UI-DRAW-001
 **Title:** Draw the outline zone with the mouse

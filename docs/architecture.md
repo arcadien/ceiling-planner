@@ -1,6 +1,6 @@
 # Architecture
 
-_Last updated: 2026-07-18 — requirement: FUNC-FRAMING-RAILS-001_
+_Last updated: 2026-07-18 — requirement: FUNC-PLATE-OPTIM-001_
 
 ## Overview
 
@@ -30,7 +30,7 @@ graph TD
 | framing-calculator | Compute the montant (stud) and rail layout for a self-supporting ceiling from a validated polygon | FUNC-FRAMING-MONTANTS-001, FUNC-FRAMING-RAILS-001 |
 | api | Expose validation and material operations over HTTP; map domain errors to responses | _(none yet)_ |
 | web-gui | Browser canvas to enter and edit the edge sequence and display the outline | _(none yet)_ |
-| plate-optimizer | Optimize plasterboard cutting from a validated polygon | _(none yet)_ |
+| plate-optimizer | Optimize plasterboard cutting from a validated polygon | FUNC-PLATE-OPTIM-001 |
 
 ## Dependency Injection Map
 
@@ -51,3 +51,4 @@ applies yet._
 | FUNC-SURFACE-INPUT-001 | surface-validator | entry point for outline validation |
 | FUNC-FRAMING-MONTANTS-001 | framing-calculator | consumes a validated polygon; produces the montant cut list |
 | FUNC-FRAMING-RAILS-001 | framing-calculator | consumes a validated polygon; produces the rail cut list |
+| FUNC-PLATE-OPTIM-001 | plate-optimizer | consumes a validated polygon; produces the plate count with offcut reuse |

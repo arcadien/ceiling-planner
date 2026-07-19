@@ -7,8 +7,8 @@ outline yields several montant pieces at the positions where the cross-section i
 """
 
 import pytest
-from ceiling_planner.framing.montants import Montant, compute_montants
 
+from ceiling_planner.framing.montants import Montant, compute_montants
 from ceiling_planner.geometry.surface import Polygon
 
 SQUARE = Polygon([(0.0, 0.0), (4.0, 0.0), (4.0, 4.0), (0.0, 4.0)])
@@ -93,3 +93,37 @@ def test_montant_is_a_value_object():
     assert isinstance(montant, Montant)
     assert montant.offset_m == pytest.approx(0.0)
     assert montant.length_m == pytest.approx(4.0)
+    assert montant.doubled is False
+
+
+@pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
+def test_joint_spacing_forces_montants_at_strip_boundaries():
+    # Given a 1 m entraxe that does not divide the 1.20 m joint pitch
+    montants = compute_montants(SQUARE, spacing_m=1.0, joint_spacing_m=1.2)
+
+    # Then montants are forced at each interior strip boundary as well as the entraxe grid
+    offsets = sorted(round(m.offset_m, 6) for m in montants)
+    assert offsets == pytest.approx([0.0, 1.0, 1.2, 2.0, 2.4, 3.0, 3.6, 4.0])
+
+
+@pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
+def test_joint_montants_can_be_doubled():
+    # Given joint doubling enabled
+    montants = compute_montants(SQUARE, spacing_m=1.0, joint_spacing_m=1.2, double_joints=True)
+
+    # Then only the joint-boundary montants are marked doubled
+    doubled = sorted(round(m.offset_m, 6) for m in montants if m.doubled)
+    plain = sorted(round(m.offset_m, 6) for m in montants if not m.doubled)
+    assert doubled == pytest.approx([1.2, 2.4, 3.6])
+    assert plain == pytest.approx([0.0, 1.0, 2.0, 3.0, 4.0])
+
+
+@pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
+def test_no_joint_spacing_keeps_plain_entraxe_grid():
+    # Given no joint spacing
+    montants = compute_montants(SQUARE, spacing_m=1.0)
+
+    # Then only the entraxe grid and extremities are placed, none doubled
+    offsets = [round(m.offset_m, 6) for m in montants]
+    assert offsets == pytest.approx([0.0, 1.0, 2.0, 3.0, 4.0])
+    assert not any(m.doubled for m in montants)

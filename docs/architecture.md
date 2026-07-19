@@ -1,6 +1,6 @@
 # Architecture
 
-_Last updated: 2026-07-18 — requirement: FUNC-PLATE-OPTIM-001_
+_Last updated: 2026-07-19 — requirement: UI-SCHEMA-001_
 
 ## Overview
 
@@ -28,8 +28,8 @@ graph TD
 |-----------|----------------|----------------|
 | surface-validator | Convert an ordered edge sequence (length + interior angle) into a polygon and validate it (edge count, positive length, angle range, simplicity, closure) | FUNC-SURFACE-INPUT-001 |
 | framing-calculator | Compute the montant (stud) and rail layout for a self-supporting ceiling from a validated polygon | FUNC-FRAMING-MONTANTS-001, FUNC-FRAMING-RAILS-001 |
-| api | Expose validation and material operations over HTTP; map domain errors to responses | _(none yet)_ |
-| web-gui | Browser canvas to enter and edit the edge sequence and display the outline | _(none yet)_ |
+| api | Expose the `/plan` endpoint over HTTP and serve the web page; map domain errors to responses | TECH-API-PLAN-001, UI-SCHEMA-001 |
+| web-gui | Browser page and canvas to enter the edge sequence and render the plan schema | UI-SCHEMA-001 |
 | plate-optimizer | Optimize plasterboard cutting from a validated polygon | FUNC-PLATE-OPTIM-001 |
 
 ## Dependency Injection Map
@@ -52,3 +52,5 @@ applies yet._
 | FUNC-FRAMING-MONTANTS-001 | framing-calculator | consumes a validated polygon; produces the montant cut list |
 | FUNC-FRAMING-RAILS-001 | framing-calculator | consumes a validated polygon; produces the rail cut list |
 | FUNC-PLATE-OPTIM-001 | plate-optimizer | consumes a validated polygon; produces the plate count with offcut reuse |
+| TECH-API-PLAN-001 | api | composes validator + framing + plates behind POST /plan |
+| UI-SCHEMA-001 | web-gui, api | page served by api; canvas renders the plan schema |

@@ -11,8 +11,8 @@ from __future__ import annotations
 from ceiling_planner.geometry.surface import Polygon
 
 
-def interior_spans(polygon: Polygon, y: float) -> list[float]:
-    """Lengths of the interior intervals where the horizontal line at ``y`` crosses the outline.
+def interior_intervals(polygon: Polygon, y: float) -> list[tuple[float, float]]:
+    """Interior ``(x_start, x_end)`` intervals crossed by the horizontal line at ``y``.
 
     Uses the even-odd scan-line rule: each non-horizontal edge is counted when
     ``y_low <= y < y_high``, crossings are sorted along x and paired into interior intervals.
@@ -32,7 +32,12 @@ def interior_spans(polygon: Polygon, y: float) -> list[float]:
             crossings.append(x1 + t * (x2 - x1))
 
     crossings.sort()
-    return [crossings[i + 1] - crossings[i] for i in range(0, len(crossings) - 1, 2)]
+    return [(crossings[i], crossings[i + 1]) for i in range(0, len(crossings) - 1, 2)]
 
 
-__all__ = ["interior_spans"]
+def interior_spans(polygon: Polygon, y: float) -> list[float]:
+    """Lengths of the interior intervals crossed by the horizontal line at ``y``."""
+    return [end - start for start, end in interior_intervals(polygon, y)]
+
+
+__all__ = ["interior_intervals", "interior_spans"]

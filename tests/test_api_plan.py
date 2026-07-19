@@ -48,15 +48,41 @@ def test_plan_reports_material_totals():
 
 @pytest.mark.req("TECH-API-PLAN-001")
 def test_optional_parameters_are_honored():
-    # Given a plan requested with a coarse montant spacing
+    # Given a coarse montant spacing and a plate wider than the room (no interior joints)
+    response = client.post(
+        "/plan",
+        json={"edges": SQUARE_EDGES, "montant_spacing_m": 4.0, "plate_width_m": 5.0},
+    )
+
+    # Then the montants follow that spacing (extremities only, no forced joints)
+    assert response.status_code == 200
+    offsets = [m["offset_m"] for m in response.json()["montants"]]
+    assert offsets == pytest.approx([0.0, 4.0])
+
+
+@pytest.mark.req("TECH-API-PLAN-001")
+def test_montants_are_forced_at_plate_joints():
+    # Given a plan with a coarse spacing but the default 1.20 m plate width
     response = client.post(
         "/plan", json={"edges": SQUARE_EDGES, "montant_spacing_m": 4.0}
     )
 
-    # Then the montants follow that spacing (offsets 0 and 4 only)
-    assert response.status_code == 200
-    offsets = [m["offset_m"] for m in response.json()["montants"]]
-    assert offsets == pytest.approx([0.0, 4.0])
+    # Then montants are forced at each plate joint (1.2, 2.4, 3.6) on top of the extremities
+    offsets = sorted(m["offset_m"] for m in response.json()["montants"])
+    assert offsets == pytest.approx([0.0, 1.2, 2.4, 3.6, 4.0])
+
+
+@pytest.mark.req("TECH-API-PLAN-001")
+def test_joint_doubling_counts_montants_twice():
+    # Given a plan requested with joint doubling enabled
+    response = client.post("/plan", json={"edges": SQUARE_EDGES, "double_joints": True})
+    data = response.json()
+
+    # Then some montants are flagged doubled and the total counts them twice
+    montants = data["montants"]
+    assert any(m["doubled"] for m in montants)
+    expected = sum(m["length_m"] * (2 if m["doubled"] else 1) for m in montants)
+    assert data["totals"]["montant_length_m"] == pytest.approx(expected)
 
 
 @pytest.mark.req("TECH-API-PLAN-001")

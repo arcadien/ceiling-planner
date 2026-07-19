@@ -55,14 +55,17 @@ extent perpendicular to the bearing direction is below a small epsilon. The resu
 rail length in outline order.
 
 ### FUNC-PLATE-OPTIM-001
-**Title:** Produce the plasterboard cutting layout with offcut reuse
+**Title:** Produce the plasterboard cutting layout with a selectable joint pattern
 **Status:** validated
 **Dependencies:** FUNC-SURFACE-INPUT-001
 **Description:** Given a validated polygon and plate dimensions (default 2.50 m by 1.20 m), the
-system produces a cutting layout. It splits the perpendicular extent into strips one plate-width
-wide and lays plates end to end along each strip's interior runs. The offcut from a cut plate is
-reused to start the next run when it is at least a minimum usable length (default 0.30 m),
-otherwise it is discarded. Non-positive dimensions are rejected. The layout lists every placed
-piece — its strip band, its extent along the bearing direction, and its kind (a full plate, a
-cut plate, or a reused offcut) so it can be drawn on the schema — and summarizes the plate
-count, the covered length, and the wasted length.
+system produces a cutting layout, splitting the perpendicular extent into strips one plate-width
+wide and laying plates end to end along each strip's interior runs. A `joint_mode` parameter
+selects the seam pattern: `reuse` (default) carries the offcut of a cut plate to the next run
+when it is at least a minimum usable length (default 0.30 m), minimizing waste but leaving
+irregular seams; `aligned` restarts a full plate in each strip so seams line up on a regular
+grid; `running_bond` offsets each strip by a fixed stagger (default half a plate length) for
+regular staggered seams. `aligned` and `running_bond` do not reuse offcuts and so accept more
+waste. Non-positive dimensions and an unknown `joint_mode` are rejected. The layout lists every
+placed piece — strip band, bearing-direction extent, and kind (`full`, `cut`, or `reused`) — and
+summarizes the plate count, the covered length, and the wasted length.

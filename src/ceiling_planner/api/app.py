@@ -8,9 +8,10 @@ HTTP 400 with a machine-readable code.
 from __future__ import annotations
 
 from dataclasses import asdict
+from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
 from ceiling_planner.framing.montants import compute_montants
@@ -34,6 +35,14 @@ class PlanRequest(BaseModel):
 
 
 app = FastAPI(title="ceiling-planner")
+
+_PAGE = Path(__file__).parent / "static" / "index.html"
+
+
+@app.get("/", response_class=HTMLResponse)
+def index() -> str:
+    """Serve the self-contained schema page (UI-SCHEMA-001)."""
+    return _PAGE.read_text(encoding="utf-8")
 
 
 @app.post("/plan", response_model=None)

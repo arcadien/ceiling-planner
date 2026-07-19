@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ceiling Planner</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 15px/1.4 system-ui, sans-serif;
+    display: grid; grid-template-columns: 340px 1fr; min-height: 100vh;
+  }
+  aside { padding: 16px; border-right: 1px solid #8884; overflow-y: auto; }
+  main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  h1 { font-size: 18px; margin: 0 0 12px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; opacity: .7; margin: 16px 0 6px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 2px 4px; font-size: 13px; }
+  input { width: 100%; padding: 4px 6px; font: inherit; border: 1px solid #8886; border-radius: 5px; background: transparent; color: inherit; }
+  .edges input { width: 88px; }
+  button { font: inherit; padding: 6px 12px; border: 1px solid #8886; border-radius: 6px; background: #8882; color: inherit; cursor: pointer; }
+  button.primary { background: #2f6fed; color: #fff; border-color: #2f6fed; }
+  button.icon { padding: 2px 8px; }
+  .row { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+  .params label { display: block; margin: 6px 0; font-size: 13px; }
+  .params label span { display: inline-block; width: 150px; opacity: .8; }
+  .params label input { width: 110px; }
+  #error { color: #d33; font-weight: 600; min-height: 1.2em; }
+  #summary { font-size: 14px; }
+  canvas { border: 1px solid #8884; border-radius: 8px; width: 100%; background: #7771; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; align-items: center; }
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; border: 1px solid #0004; }
+</style>
+</head>
+<body>
+<aside>
+  <h1>Ceiling Planner</h1>
+
+  <h2>Outline — edges</h2>
+  <p style="font-size:12px;opacity:.7;margin:0 0 6px">Length (m) and interior angle (deg) at the corner starting each edge. The first edge sets the bearing direction.</p>
+  <table class="edges">
+    <thead><tr><th>Length</th><th>Angle</th><th></th></tr></thead>
+    <tbody id="edges"></tbody>
+  </table>
+  <div class="row"><button id="add" class="icon">+ edge</button></div>
+
+  <h2>Parameters</h2>
+  <div class="params">
+    <label><span>Montant spacing (m)</span><input id="montant_spacing_m" type="number" step="0.01" value="0.60"></label>
+    <label><span>Plate length (m)</span><input id="plate_length_m" type="number" step="0.01" value="2.50"></label>
+    <label><span>Plate width (m)</span><input id="plate_width_m" type="number" step="0.01" value="1.20"></label>
+    <label><span>Min offcut (m)</span><input id="min_offcut_m" type="number" step="0.01" value="0.30"></label>
+    <label><span>Closure tol. (m)</span><input id="closure_tolerance_m" type="number" step="0.01" value="0.02"></label>
+  </div>
+
+  <div class="row"><button id="compute" class="primary">Compute plan</button></div>
+  <div id="error"></div>
+</aside>
+
+<main>
+  <div class="legend">
+    <span><span class="swatch" style="background:#8fbcff"></span>full plate</span>
+    <span><span class="swatch" style="background:#ffb865"></span>cut plate</span>
+    <span><span class="swatch" style="background:#8fd39a"></span>reused offcut</span>
+    <span><span class="swatch" style="background:#555"></span>rail</span>
+    <span><span class="swatch" style="background:#aaa"></span>montant</span>
+  </div>
+  <div id="summary"></div>
+  <canvas id="schema" width="900" height="620"></canvas>
+</main>
+
+<script>
+const KIND_COLORS = { full: "#8fbcff", cut: "#ffb865", reused: "#8fd39a" };
+const edgesBody = document.getElementById("edges");
+
+function addEdge(length, angle) {
+  const tr = document.createElement("tr");
+  tr.innerHTML =
+    '<td><input class="len" type="number" step="0.01" value="' + length + '"></td>' +
+    '<td><input class="ang" type="number" step="0.1" value="' + angle + '"></td>' +
+    '<td><button class="icon rm">×</button></td>';
+  tr.querySelector(".rm").onclick = () => tr.remove();
+  edgesBody.appendChild(tr);
+}
+
+// Preloaded L-shaped example (non-rectangular).
+[[4,90],[2,90],[2,90],[2,270],[2,90],[4,90]].forEach(e => addEdge(e[0], e[1]));
+
+document.getElementById("add").onclick = () => addEdge(1.0, 90.0);
+
+function collectEdges() {
+  return [...edgesBody.querySelectorAll("tr")].map(tr => ({
+    length_m: parseFloat(tr.querySelector(".len").value),
+    interior_angle_deg: parseFloat(tr.querySelector(".ang").value),
+  }));
+}
+
+function param(id) { return parseFloat(document.getElementById(id).value); }
+
+// Interior x-intervals where a horizontal line at y crosses the outline (even-odd scan line).
+function interiorIntervals(vertices, y) {
+  const xs = [];
+  for (let i = 0; i < vertices.length; i++) {
+    const [x1, y1] = vertices[i];
+    const [x2, y2] = vertices[(i + 1) % vertices.length];
+    if (y1 === y2) continue;
+    const lo = Math.min(y1, y2), hi = Math.max(y1, y2);
+    if (lo <= y && y < hi) xs.push(x1 + (y - y1) / (y2 - y1) * (x2 - x1));
+  }
+  xs.sort((a, b) => a - b);
+  const out = [];
+  for (let i = 0; i + 1 < xs.length; i += 2) out.push([xs[i], xs[i + 1]]);
+  return out;
+}
+
+async function compute() {
+  const errEl = document.getElementById("error");
+  errEl.textContent = "";
+  const body = {
+    edges: collectEdges(),
+    montant_spacing_m: param("montant_spacing_m"),
+    plate_length_m: param("plate_length_m"),
+    plate_width_m: param("plate_width_m"),
+    min_offcut_m: param("min_offcut_m"),
+    closure_tolerance_m: param("closure_tolerance_m"),
+  };
+  let resp;
+  try {
+    resp = await fetch("/plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (e) { errEl.textContent = "Network error"; return; }
+  const data = await resp.json();
+  if (!resp.ok) { errEl.textContent = "Invalid outline: " + (data.error || resp.status); return; }
+  draw(data);
+}
+
+function draw(data) {
+  const canvas = document.getElementById("schema");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height, m = 40;
+  ctx.clearRect(0, 0, W, H);
+
+  const v = data.vertices;
+  const xs = v.map(p => p[0]), ys = v.map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const scale = Math.min((W - 2 * m) / (maxX - minX || 1), (H - 2 * m) / (maxY - minY || 1));
+  const px = x => m + (x - minX) * scale;
+  const py = y => H - m - (y - minY) * scale;  // flip: meters up, canvas down
+
+  // Plate pieces, colored by kind.
+  for (const p of data.plates.pieces) {
+    ctx.fillStyle = KIND_COLORS[p.kind] || "#ccc";
+    ctx.globalAlpha = 0.75;
+    const x = px(p.x_start_m), y = py(p.y_max_m);
+    ctx.fillRect(x, y, (p.x_end_m - p.x_start_m) * scale, (p.y_max_m - p.y_min_m) * scale);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "#0003";
+    ctx.strokeRect(x, y, (p.x_end_m - p.x_start_m) * scale, (p.y_max_m - p.y_min_m) * scale);
+  }
+
+  // Montants: thin lines at each unique offset, over the interior intervals.
+  ctx.strokeStyle = "#999";
+  ctx.lineWidth = 1;
+  const offsets = [...new Set(data.montants.map(mm => mm.offset_m.toFixed(6)))].map(parseFloat);
+  for (const off of offsets) {
+    const probe = Math.min(Math.max(off, minY + 1e-9), maxY - 1e-9);
+    for (const [xa, xb] of interiorIntervals(v, probe)) {
+      ctx.beginPath(); ctx.moveTo(px(xa), py(off)); ctx.lineTo(px(xb), py(off)); ctx.stroke();
+    }
+  }
+
+  // Rails: thick segments on every non-parallel outline edge.
+  ctx.strokeStyle = "#444";
+  ctx.lineWidth = 4;
+  for (let i = 0; i < v.length; i++) {
+    const [x1, y1] = v[i], [x2, y2] = v[(i + 1) % v.length];
+    if (Math.abs(y2 - y1) < 1e-9) continue;
+    ctx.beginPath(); ctx.moveTo(px(x1), py(y1)); ctx.lineTo(px(x2), py(y2)); ctx.stroke();
+  }
+
+  // Outline.
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  v.forEach((p, i) => (i ? ctx.lineTo(px(p[0]), py(p[1])) : ctx.moveTo(px(p[0]), py(p[1]))));
+  ctx.closePath(); ctx.stroke();
+
+  const pl = data.plates;
+  document.getElementById("summary").textContent =
+    pl.plate_count + " plates · " + data.montants.length + " montant pieces · " +
+    data.rails.length + " rails · waste " + pl.waste_length_m.toFixed(2) + " m";
+}
+
+document.getElementById("compute").onclick = compute;
+compute();
+</script>
+</body>
+</html>

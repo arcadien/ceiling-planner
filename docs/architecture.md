@@ -1,6 +1,6 @@
 # Architecture
 
-_Last updated: 2026-07-18 — requirement: FUNC-FRAMING-MONTANTS-001_
+_Last updated: 2026-07-18 — requirement: FUNC-FRAMING-RAILS-001_
 
 ## Overview
 
@@ -27,7 +27,7 @@ graph TD
 | Component | Responsibility | Requirement(s) |
 |-----------|----------------|----------------|
 | surface-validator | Convert an ordered edge sequence (length + interior angle) into a polygon and validate it (edge count, positive length, angle range, simplicity, closure) | FUNC-SURFACE-INPUT-001 |
-| framing-calculator | Compute the montant (stud) and rail layout for a self-supporting ceiling from a validated polygon | FUNC-FRAMING-MONTANTS-001 |
+| framing-calculator | Compute the montant (stud) and rail layout for a self-supporting ceiling from a validated polygon | FUNC-FRAMING-MONTANTS-001, FUNC-FRAMING-RAILS-001 |
 | api | Expose validation and material operations over HTTP; map domain errors to responses | _(none yet)_ |
 | web-gui | Browser canvas to enter and edit the edge sequence and display the outline | _(none yet)_ |
 | plate-optimizer | Optimize plasterboard cutting from a validated polygon | _(none yet)_ |
@@ -50,3 +50,4 @@ applies yet._
 |-------------|-------------|-------|
 | FUNC-SURFACE-INPUT-001 | surface-validator | entry point for outline validation |
 | FUNC-FRAMING-MONTANTS-001 | framing-calculator | consumes a validated polygon; produces the montant cut list |
+| FUNC-FRAMING-RAILS-001 | framing-calculator | consumes a validated polygon; produces the rail cut list |

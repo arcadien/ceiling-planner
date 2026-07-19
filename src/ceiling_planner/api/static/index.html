@@ -63,6 +63,7 @@
     <label><span>Plate length (m)</span><input id="plate_length_m" type="number" step="0.01" value="2.50"></label>
     <label><span>Plate width (m)</span><input id="plate_width_m" type="number" step="0.01" value="1.20"></label>
     <label><span>Min offcut (m)</span><input id="min_offcut_m" type="number" step="0.01" value="0.30"></label>
+    <label><span>Double joint montants</span><input id="double_joints" type="checkbox" style="width:auto"></label>
     <label><span>Joints</span>
       <select id="joint_mode" style="width:150px;padding:4px 6px;font:inherit;border:1px solid #8886;border-radius:5px;background:transparent;color:inherit">
         <option value="reuse">reuse (least waste)</option>
@@ -152,6 +153,7 @@ async function compute() {
     plate_width_m: param("plate_width_m"),
     min_offcut_m: param("min_offcut_m"),
     joint_mode: document.getElementById("joint_mode").value,
+    double_joints: document.getElementById("double_joints").checked,
     closure_tolerance_m: param("closure_tolerance_m"),
   };
   let resp;
@@ -195,15 +197,20 @@ function draw(data) {
     ctx.strokeRect(x, y, (p.x_end_m - p.x_start_m) * scale, (p.y_max_m - p.y_min_m) * scale);
   }
 
-  // Montants overlay (toggleable): thin lines at each unique offset, over the interior intervals.
+  // Montants overlay (toggleable): a line at each offset; doubled joint montants draw back-to-back.
   if (document.getElementById("toggle-montants").checked) {
-    ctx.strokeStyle = "#999";
     ctx.lineWidth = 1;
+    const doubled = new Set(data.montants.filter(mm => mm.doubled).map(mm => mm.offset_m.toFixed(6)));
     const offsets = [...new Set(data.montants.map(mm => mm.offset_m.toFixed(6)))].map(parseFloat);
     for (const off of offsets) {
       const probe = Math.min(Math.max(off, minY + 1e-9), maxY - 1e-9);
+      const isDoubled = doubled.has(off.toFixed(6));
+      ctx.strokeStyle = isDoubled ? "#c0392b" : "#999";
+      const shifts = isDoubled ? [-2, 2] : [0];  // back-to-back pair
       for (const [xa, xb] of interiorIntervals(v, probe)) {
-        ctx.beginPath(); ctx.moveTo(px(xa), py(off)); ctx.lineTo(px(xb), py(off)); ctx.stroke();
+        for (const s of shifts) {
+          ctx.beginPath(); ctx.moveTo(px(xa), py(off) + s); ctx.lineTo(px(xb), py(off) + s); ctx.stroke();
+        }
       }
     }
   }
@@ -301,6 +308,7 @@ document.getElementById("clear").onclick = () => { sketch = []; drawSketch(); };
 
 document.getElementById("compute").onclick = compute;
 document.getElementById("joint_mode").onchange = compute;
+document.getElementById("double_joints").onchange = compute;
 document.getElementById("toggle-montants").onchange = redraw;
 document.getElementById("toggle-rails").onchange = redraw;
 compute();

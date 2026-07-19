@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ceiling_planner.geometry.scanline import interior_spans
 from ceiling_planner.geometry.surface import Polygon
 
 _DEFAULT_SPACING_M = 0.60
@@ -43,7 +44,7 @@ def compute_montants(polygon: Polygon, spacing_m: float = _DEFAULT_SPACING_M) ->
     montants: list[Montant] = []
     for offset in offsets:
         probe = min(max(offset, y_min + _BOUNDARY_INSET_M), y_max - _BOUNDARY_INSET_M)
-        for length in _interior_spans(polygon, probe):
+        for length in interior_spans(polygon, probe):
             montants.append(Montant(offset_m=offset, length_m=length))
     return montants
 
@@ -57,30 +58,6 @@ def _montant_offsets(y_min: float, y_max: float, spacing_m: float) -> list[float
         step += 1
     offsets.append(y_max)
     return offsets
-
-
-def _interior_spans(polygon: Polygon, y: float) -> list[float]:
-    """Lengths of the interior intervals where the horizontal line at ``y`` crosses the outline.
-
-    Uses the even-odd scan-line rule: each non-horizontal edge is counted when
-    ``y_low <= y < y_high``, crossings are sorted along x and paired into interior intervals.
-    """
-    vertices = polygon.vertices
-    n = len(vertices)
-    crossings: list[float] = []
-
-    for i in range(n):
-        x1, y1 = vertices[i]
-        x2, y2 = vertices[(i + 1) % n]
-        if y1 == y2:
-            continue  # horizontal edge contributes no crossing
-        y_low, y_high = (y1, y2) if y1 < y2 else (y2, y1)
-        if y_low <= y < y_high:
-            t = (y - y1) / (y2 - y1)
-            crossings.append(x1 + t * (x2 - x1))
-
-    crossings.sort()
-    return [crossings[i + 1] - crossings[i] for i in range(0, len(crossings) - 1, 2)]
 
 
 __all__ = ["Montant", "compute_montants"]

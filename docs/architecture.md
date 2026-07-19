@@ -1,6 +1,6 @@
 # Architecture
 
-_Last updated: 2026-07-19 — requirement: UI-SCHEMA-001_
+_Last updated: 2026-07-19 — requirement: UI-DRAW-001_
 
 ## Overview
 
@@ -26,10 +26,10 @@ graph TD
 
 | Component | Responsibility | Requirement(s) |
 |-----------|----------------|----------------|
-| surface-validator | Convert an ordered edge sequence (length + interior angle) into a polygon and validate it (edge count, positive length, angle range, simplicity, closure) | FUNC-SURFACE-INPUT-001 |
+| surface-validator | Convert an ordered edge sequence (length + interior angle) into a polygon and validate it, and derive an edge sequence back from ordered vertices | FUNC-SURFACE-INPUT-001, FUNC-SURFACE-FROMPOINTS-001 |
 | framing-calculator | Compute the montant (stud) and rail layout for a self-supporting ceiling from a validated polygon | FUNC-FRAMING-MONTANTS-001, FUNC-FRAMING-RAILS-001 |
-| api | Expose the `/plan` endpoint over HTTP and serve the web page; map domain errors to responses | TECH-API-PLAN-001, UI-SCHEMA-001 |
-| web-gui | Browser page and canvas to enter the edge sequence and render the plan schema | UI-SCHEMA-001 |
+| api | Expose the `/plan` and `/edges` endpoints over HTTP and serve the web page; map domain errors to responses | TECH-API-PLAN-001, FUNC-SURFACE-FROMPOINTS-001, UI-SCHEMA-001 |
+| web-gui | Browser page and canvas to draw or enter the outline and render the plan schema | UI-SCHEMA-001, UI-DRAW-001 |
 | plate-optimizer | Optimize plasterboard cutting from a validated polygon | FUNC-PLATE-OPTIM-001 |
 
 ## Dependency Injection Map
@@ -49,6 +49,7 @@ applies yet._
 | Requirement | Component(s) | Notes |
 |-------------|-------------|-------|
 | FUNC-SURFACE-INPUT-001 | surface-validator | entry point for outline validation |
+| FUNC-SURFACE-FROMPOINTS-001 | surface-validator, api | derives edges from drawn vertices; exposed at POST /edges |
 | FUNC-FRAMING-MONTANTS-001 | framing-calculator | consumes a validated polygon; produces the montant cut list |
 | FUNC-FRAMING-RAILS-001 | framing-calculator | consumes a validated polygon; produces the rail cut list |
 | FUNC-PLATE-OPTIM-001 | plate-optimizer | consumes a validated polygon; produces the plate count with offcut reuse |

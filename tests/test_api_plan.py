@@ -6,8 +6,9 @@ failed outline validation or an invalid parameter returns HTTP 400 with a code.
 """
 
 import pytest
-from ceiling_planner.api.app import app
 from fastapi.testclient import TestClient
+
+from ceiling_planner.api.app import app
 
 client = TestClient(app)
 
@@ -23,7 +24,10 @@ def test_plan_returns_full_material_plan_for_valid_outline():
     # Then every section of the material plan is present
     assert response.status_code == 200
     data = response.json()
-    assert data["vertices"] == pytest.approx([[0.0, 0.0], [4.0, 0.0], [4.0, 4.0], [0.0, 4.0]])
+    expected_vertices = [[0.0, 0.0], [4.0, 0.0], [4.0, 4.0], [0.0, 4.0]]
+    assert len(data["vertices"]) == len(expected_vertices)
+    for got, want in zip(data["vertices"], expected_vertices, strict=True):
+        assert got == pytest.approx(want)
     assert len(data["montants"]) >= 1
     assert len(data["rails"]) == 2
     assert data["plates"]["plate_count"] >= 1

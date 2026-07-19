@@ -35,6 +35,18 @@ def test_plan_returns_full_material_plan_for_valid_outline():
 
 
 @pytest.mark.req("TECH-API-PLAN-001")
+def test_plan_reports_material_totals():
+    # Given a plan for a valid outline
+    data = client.post("/plan", json={"edges": SQUARE_EDGES}).json()
+
+    # Then the totals block sums the montant and rail lengths and mirrors the plate count
+    totals = data["totals"]
+    assert totals["montant_length_m"] == pytest.approx(sum(m["length_m"] for m in data["montants"]))
+    assert totals["rail_length_m"] == pytest.approx(sum(r["length_m"] for r in data["rails"]))
+    assert totals["plate_count"] == data["plates"]["plate_count"]
+
+
+@pytest.mark.req("TECH-API-PLAN-001")
 def test_optional_parameters_are_honored():
     # Given a plan requested with a coarse montant spacing
     response = client.post(

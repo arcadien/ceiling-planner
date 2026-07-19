@@ -132,3 +132,53 @@ def test_result_is_a_plate_plan_value():
     assert isinstance(plan, PlatePlan)
     assert plan.plate_count == 1
     assert plan.waste_length_m == pytest.approx(0.0)
+
+
+def _starts_by_strip(plan):
+    starts = {}
+    for p in plan.pieces:
+        starts.setdefault(p.strip_index, []).append(round(p.x_start_m, 6))
+    return {k: sorted(v) for k, v in starts.items()}
+
+
+@pytest.mark.req("FUNC-PLATE-OPTIM-001")
+def test_aligned_mode_lines_up_seams_across_strips():
+    # Given a 6.0 m by 2.40 m area laid with aligned joints
+    plan = optimize_plates(rectangle(6.0, 2.40), joint_mode="aligned")
+
+    # Then every strip starts its plates at the same positions (no offcut reuse)
+    by_strip = _starts_by_strip(plan)
+    assert by_strip[0] == pytest.approx([0.0, 2.5, 5.0])
+    assert by_strip[1] == pytest.approx([0.0, 2.5, 5.0])
+    assert not any(p.kind == "reused" for p in plan.pieces)
+
+
+@pytest.mark.req("FUNC-PLATE-OPTIM-001")
+def test_running_bond_offsets_alternate_strips():
+    # Given a 6.0 m by 2.40 m area laid in running bond (half-plate stagger)
+    plan = optimize_plates(rectangle(6.0, 2.40), joint_mode="running_bond")
+
+    # Then the second strip is offset by half a plate, so its seams stagger
+    by_strip = _starts_by_strip(plan)
+    assert by_strip[0] == pytest.approx([0.0, 2.5, 5.0])
+    assert by_strip[1] == pytest.approx([0.0, 1.25, 3.75])
+
+
+@pytest.mark.req("FUNC-PLATE-OPTIM-001")
+def test_regular_joints_cost_more_plates_than_reuse():
+    # Given the same area under reuse and aligned joints
+    reuse = optimize_plates(rectangle(6.0, 2.40), joint_mode="reuse")
+    aligned = optimize_plates(rectangle(6.0, 2.40), joint_mode="aligned")
+
+    # Then regular joints trade plates for regularity
+    assert reuse.plate_count == 5
+    assert aligned.plate_count == 6
+    assert aligned.waste_length_m > reuse.waste_length_m
+
+
+@pytest.mark.req("FUNC-PLATE-OPTIM-001")
+def test_unknown_joint_mode_is_rejected():
+    # Given an unknown joint mode
+    # When the plate plan is computed
+    with pytest.raises(ValueError):
+        optimize_plates(rectangle(5.0, 1.20), joint_mode="herringbone")

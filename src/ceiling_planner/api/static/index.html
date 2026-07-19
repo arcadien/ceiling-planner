@@ -43,7 +43,13 @@
     <thead><tr><th>Length</th><th>Angle</th><th></th></tr></thead>
     <tbody id="edges"></tbody>
   </table>
-  <div class="row"><button id="add" class="icon">+ edge</button></div>
+  <div class="row">
+    <button id="add" class="icon">+ edge</button>
+    <button id="draw" class="icon">✎ draw</button>
+    <button id="finish" class="icon" hidden>finish</button>
+    <button id="clear" class="icon" hidden>clear</button>
+  </div>
+  <p id="drawhint" style="font-size:12px;opacity:.7;margin:0" hidden>Click points on the grid (1&nbsp;m squares); double-click or press finish to close.</p>
 
   <h2>Parameters</h2>
   <div class="params">
@@ -195,6 +201,71 @@ function draw(data) {
     pl.plate_count + " plates · " + data.montants.length + " montant pieces · " +
     data.rails.length + " rails · waste " + pl.waste_length_m.toFixed(2) + " m";
 }
+
+// ---- Draw mode: sketch the outline on a metric grid, derive edges via /edges ----
+const DRAW_SCALE = 40, DRAW_MARGIN = 40;  // pixels per meter, canvas margin
+let drawing = false, sketch = [];
+const sketchCanvas = document.getElementById("schema");
+
+function eventToMeters(evt) {
+  const r = sketchCanvas.getBoundingClientRect();
+  const px = (evt.clientX - r.left) * (sketchCanvas.width / r.width);
+  const py = (evt.clientY - r.top) * (sketchCanvas.height / r.height);
+  return [(px - DRAW_MARGIN) / DRAW_SCALE, (sketchCanvas.height - DRAW_MARGIN - py) / DRAW_SCALE];
+}
+
+function drawSketch() {
+  const ctx = sketchCanvas.getContext("2d");
+  const W = sketchCanvas.width, H = sketchCanvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = "#8883"; ctx.lineWidth = 1;
+  for (let x = DRAW_MARGIN; x < W; x += DRAW_SCALE) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = H - DRAW_MARGIN; y > 0; y -= DRAW_SCALE) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  const px = x => DRAW_MARGIN + x * DRAW_SCALE, py = y => H - DRAW_MARGIN - y * DRAW_SCALE;
+  ctx.strokeStyle = "#2f6fed"; ctx.fillStyle = "#2f6fed"; ctx.lineWidth = 2;
+  ctx.beginPath();
+  sketch.forEach((p, i) => (i ? ctx.lineTo(px(p[0]), py(p[1])) : ctx.moveTo(px(p[0]), py(p[1]))));
+  ctx.stroke();
+  sketch.forEach(p => { ctx.beginPath(); ctx.arc(px(p[0]), py(p[1]), 4, 0, 7); ctx.fill(); });
+}
+
+function startDraw() {
+  drawing = true; sketch = [];
+  document.getElementById("finish").hidden = false;
+  document.getElementById("clear").hidden = false;
+  document.getElementById("drawhint").hidden = false;
+  document.getElementById("error").textContent = "";
+  drawSketch();
+}
+
+async function finishDraw() {
+  if (!drawing) return;
+  if (sketch.length < 3) { document.getElementById("error").textContent = "Draw at least 3 points"; return; }
+  drawing = false;
+  document.getElementById("finish").hidden = true;
+  document.getElementById("clear").hidden = true;
+  document.getElementById("drawhint").hidden = true;
+  let resp;
+  try {
+    resp = await fetch("/edges", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ points: sketch }),
+    });
+  } catch (e) { document.getElementById("error").textContent = "Network error"; return; }
+  const data = await resp.json();
+  if (!resp.ok) { document.getElementById("error").textContent = "Cannot derive edges: " + (data.error || resp.status); return; }
+  const round2 = v => Math.round(v * 100) / 100;
+  edgesBody.innerHTML = "";
+  data.edges.forEach(e => addEdge(round2(e.length_m), round2(e.interior_angle_deg)));
+  compute();
+}
+
+sketchCanvas.addEventListener("click", e => { if (drawing) { sketch.push(eventToMeters(e)); drawSketch(); } });
+sketchCanvas.addEventListener("dblclick", () => { if (drawing) { sketch.pop(); finishDraw(); } });
+document.getElementById("draw").onclick = startDraw;
+document.getElementById("finish").onclick = finishDraw;
+document.getElementById("clear").onclick = () => { sketch = []; drawSketch(); };
 
 document.getElementById("compute").onclick = compute;
 compute();

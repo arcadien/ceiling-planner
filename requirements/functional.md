@@ -17,6 +17,18 @@ tolerance. Invalid input returns a specific error identifying the violated rule:
 `not_closed`. Interior angles are expressed in degrees within the open range `(0, 360)`. The
 closure tolerance is a caller-supplied parameter in meters (default 0.02).
 
+### FUNC-SURFACE-FROMPOINTS-001
+**Title:** Derive the outline edge sequence from ordered vertices
+**Status:** validated
+**Dependencies:** FUNC-SURFACE-INPUT-001
+**Description:** Given an ordered list of at least 3 outline vertices `(x, y)` in meters, the
+system derives the edge sequence used by the validator: each edge's length is the distance to
+the next vertex, and its interior angle is the polygon's interior angle at the vertex that
+starts it. Clockwise input is normalized to counter-clockwise so convex corners yield angles
+below 180 degrees. The derived sequence round-trips: validating it reconstructs the same shape
+up to translation and rotation. Fewer than 3 vertices are rejected. The capability is exposed
+at `POST /edges`, returning the derived edges as JSON.
+
 ### FUNC-FRAMING-MONTANTS-001
 **Title:** Compute the montant (stud) cut list for a validated outline
 **Status:** validated

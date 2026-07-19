@@ -41,6 +41,7 @@ class PlanRequest(BaseModel):
     plate_length_m: float = 2.50
     plate_width_m: float = 1.20
     min_offcut_m: float = 0.30
+    joint_mode: str = "reuse"
 
 
 app = FastAPI(title="ceiling-planner")
@@ -81,6 +82,7 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
             plate_length_m=request.plate_length_m,
             plate_width_m=request.plate_width_m,
             min_offcut_m=request.min_offcut_m,
+            joint_mode=request.joint_mode,
         )
     except SurfaceError as exc:
         return JSONResponse(status_code=400, content={"error": exc.code})

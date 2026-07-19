@@ -89,6 +89,8 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
     except ValueError as exc:
         return JSONResponse(status_code=400, content={"error": str(exc)})
 
+    montant_length_m = sum(m.length_m for m in montants)
+    rail_length_m = sum(r.length_m for r in rails)
     return {
         "vertices": [[x, y] for x, y in polygon.vertices],
         "montants": [{"offset_m": m.offset_m, "length_m": m.length_m} for m in montants],
@@ -98,5 +100,10 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
             "covered_length_m": plates.covered_length_m,
             "waste_length_m": plates.waste_length_m,
             "pieces": [asdict(p) for p in plates.pieces],
+        },
+        "totals": {
+            "montant_length_m": montant_length_m,
+            "rail_length_m": rail_length_m,
+            "plate_count": plates.plate_count,
         },
     }

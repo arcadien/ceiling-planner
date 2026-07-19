@@ -43,14 +43,14 @@ extent perpendicular to the bearing direction is below a small epsilon. The resu
 rail length in outline order.
 
 ### FUNC-PLATE-OPTIM-001
-**Title:** Optimize plasterboard cutting into a plate count with offcut reuse
+**Title:** Produce the plasterboard cutting layout with offcut reuse
 **Status:** validated
 **Dependencies:** FUNC-SURFACE-INPUT-001
-**Description:** Given a validated polygon and plate dimensions (default 2.50 m length by 1.20 m
-width), the system covers the outline with plates laid in strips one plate-width wide along the
-bearing direction. It splits the perpendicular extent into successive strips and, for each
-strip, measures the run length to cover along the bearing direction. Plates of the plate length
-are consumed end to end across the successive strip runs; the offcut left from cutting a plate
-is carried to the next run when it is at least a minimum usable length (default 0.30 m),
-otherwise it is discarded as waste. Non-positive dimensions are rejected. The result reports the
-number of full plates to purchase, the total covered length, and the wasted plate length.
+**Description:** Given a validated polygon and plate dimensions (default 2.50 m by 1.20 m), the
+system produces a cutting layout. It splits the perpendicular extent into strips one plate-width
+wide and lays plates end to end along each strip's interior runs. The offcut from a cut plate is
+reused to start the next run when it is at least a minimum usable length (default 0.30 m),
+otherwise it is discarded. Non-positive dimensions are rejected. The layout lists every placed
+piece — its strip band, its extent along the bearing direction, and its kind (a full plate, a
+cut plate, or a reused offcut) so it can be drawn on the schema — and summarizes the plate
+count, the covered length, and the wasted length.

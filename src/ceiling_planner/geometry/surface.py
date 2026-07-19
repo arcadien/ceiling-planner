@@ -44,6 +44,44 @@ class SurfaceError(Exception):
         self.code = code
 
 
+def edges_from_vertices(vertices: list[Point]) -> list[Edge]:
+    """Derive the edge sequence (length + interior angle) from ordered outline vertices.
+
+    Each edge runs from a vertex to the next; its interior angle is measured at the vertex that
+    starts it. Clockwise input is normalized to counter-clockwise so convex corners yield angles
+    below 180 degrees. The result round-trips through :func:`validate_surface`.
+    """
+    if len(vertices) < _MIN_EDGES:
+        raise ValueError("too_few_vertices")
+
+    points = list(vertices)
+    if _signed_area(points) < 0:
+        points.reverse()
+
+    n = len(points)
+    edges: list[Edge] = []
+    for i in range(n):
+        prev_p = points[i - 1]
+        cur = points[i]
+        nxt = points[(i + 1) % n]
+        length = math.dist(cur, nxt)
+        heading_in = math.atan2(cur[1] - prev_p[1], cur[0] - prev_p[0])
+        heading_out = math.atan2(nxt[1] - cur[1], nxt[0] - cur[0])
+        turn = (math.degrees(heading_out - heading_in) + 180.0) % 360.0 - 180.0
+        interior = (180.0 - turn) % 360.0
+        edges.append(Edge(length_m=length, interior_angle_deg=interior))
+    return edges
+
+
+def _signed_area(points: list[Point]) -> float:
+    """Twice the signed area of the polygon: positive when the vertices wind counter-clockwise."""
+    n = len(points)
+    return math.fsum(
+        points[i][0] * points[(i + 1) % n][1] - points[(i + 1) % n][0] * points[i][1]
+        for i in range(n)
+    )
+
+
 def validate_surface(
     edges: list[Edge],
     closure_tolerance_m: float = _DEFAULT_CLOSURE_TOLERANCE_M,

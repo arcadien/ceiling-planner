@@ -7,9 +7,9 @@ it is waste. ``optimize_plates`` reports the plate count, covered length, and wa
 """
 
 import pytest
-from ceiling_planner.plates.optimizer import PlatePlan, optimize_plates
 
 from ceiling_planner.geometry.surface import Polygon
+from ceiling_planner.plates.optimizer import PlatePiece, PlatePlan, optimize_plates
 
 
 def rectangle(width: float, height: float) -> Polygon:
@@ -91,6 +91,36 @@ def test_non_positive_dimensions_are_rejected(kwargs):
     # When the plate plan is computed
     with pytest.raises(ValueError):
         optimize_plates(rectangle(5.0, 1.20), **kwargs)
+
+
+@pytest.mark.req("FUNC-PLATE-OPTIM-001")
+def test_layout_lists_each_piece_with_position_and_kind():
+    # Given a 6.0 m by 1.20 m strip needing three plates (2.5 + 2.5 + 1.0)
+    # When the plate plan is computed
+    plan = optimize_plates(rectangle(6.0, 1.20))
+
+    # Then three pieces are placed in strip 0, the last one cut to length
+    assert [p.kind for p in plan.pieces] == ["full", "full", "cut"]
+    assert all(isinstance(p, PlatePiece) for p in plan.pieces)
+    assert all(p.strip_index == 0 for p in plan.pieces)
+    assert all(p.y_min_m == pytest.approx(0.0) for p in plan.pieces)
+    assert all(p.y_max_m == pytest.approx(1.20) for p in plan.pieces)
+    spans = [(p.x_start_m, p.x_end_m) for p in plan.pieces]
+    assert spans == pytest.approx([(0.0, 2.5), (2.5, 5.0), (5.0, 6.0)])
+
+
+@pytest.mark.req("FUNC-PLATE-OPTIM-001")
+def test_reused_offcut_is_placed_as_a_reused_piece():
+    # Given a 6.0 m by 2.40 m area whose first-strip offcut feeds the second strip
+    # When the plate plan is computed
+    plan = optimize_plates(rectangle(6.0, 2.40))
+
+    # Then the second strip opens with a reused 1.5 m offcut piece
+    reused = [p for p in plan.pieces if p.kind == "reused"]
+    assert len(reused) == 1
+    piece = reused[0]
+    assert piece.strip_index == 1
+    assert (piece.x_start_m, piece.x_end_m) == pytest.approx((0.0, 1.5))
 
 
 @pytest.mark.req("FUNC-PLATE-OPTIM-001")

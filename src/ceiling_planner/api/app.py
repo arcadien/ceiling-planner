@@ -42,6 +42,7 @@ class PlanRequest(BaseModel):
     plate_width_m: float = 1.20
     min_offcut_m: float = 0.30
     joint_mode: str = "reuse"
+    double_joints: bool = False
 
 
 app = FastAPI(title="ceiling-planner")
@@ -75,7 +76,12 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
     edges = [Edge(e.length_m, e.interior_angle_deg) for e in request.edges]
     try:
         polygon = validate_surface(edges, closure_tolerance_m=request.closure_tolerance_m)
-        montants = compute_montants(polygon, spacing_m=request.montant_spacing_m)
+        montants = compute_montants(
+            polygon,
+            spacing_m=request.montant_spacing_m,
+            joint_spacing_m=request.plate_width_m,
+            double_joints=request.double_joints,
+        )
         rails = compute_rails(polygon)
         plates = optimize_plates(
             polygon,
@@ -89,11 +95,14 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
     except ValueError as exc:
         return JSONResponse(status_code=400, content={"error": str(exc)})
 
-    montant_length_m = sum(m.length_m for m in montants)
+    montant_length_m = sum(m.length_m * (2 if m.doubled else 1) for m in montants)
     rail_length_m = sum(r.length_m for r in rails)
     return {
         "vertices": [[x, y] for x, y in polygon.vertices],
-        "montants": [{"offset_m": m.offset_m, "length_m": m.length_m} for m in montants],
+        "montants": [
+            {"offset_m": m.offset_m, "length_m": m.length_m, "doubled": m.doubled}
+            for m in montants
+        ],
         "rails": [{"length_m": r.length_m} for r in rails],
         "plates": {
             "plate_count": plates.plate_count,

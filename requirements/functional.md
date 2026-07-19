@@ -29,3 +29,15 @@ direction: a convex outline yields one length per position, while a concave outl
 several separate pieces at the same position. A non-positive spacing is rejected. Boundary
 positions are evaluated just inside the outline so they report the adjacent interior span. The
 default spacing is a provisional 0.60 m parameter, to be confirmed against the applicable DTU.
+
+### FUNC-FRAMING-RAILS-001
+**Title:** Compute the rail cut list along the bearing walls
+**Status:** validated
+**Dependencies:** FUNC-SURFACE-INPUT-001, FUNC-FRAMING-MONTANTS-001
+**Description:** Given a validated polygon, the system returns the perimeter rails fixed to the
+walls that carry the montant ends, that is every outline edge that is not parallel to the
+bearing direction (the first edge). Each such edge yields one rail whose length equals the
+edge length. Edges parallel to the bearing direction carry no structural rail, since montants
+run alongside those walls rather than bearing on them. An edge is treated as parallel when its
+extent perpendicular to the bearing direction is below a small epsilon. The result lists each
+rail length in outline order.

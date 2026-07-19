@@ -41,6 +41,11 @@ direction: a convex outline yields one length per position, while a concave outl
 several separate pieces at the same position. A non-positive spacing is rejected. Boundary
 positions are evaluated just inside the outline so they report the adjacent interior span. The
 default spacing is a provisional 0.60 m parameter, to be confirmed against the applicable DTU.
+An optional joint spacing forces an extra montant at every interior strip boundary (each
+multiple of the joint spacing from the near extremity) so a montant always backs a plasterboard
+joint; when the joint spacing is unset, no joints are forced. Joint montants may be doubled
+back-to-back (each adjoining plate then screws to its own montant); doubling is off by default,
+and each montant reports whether it is doubled.
 
 ### FUNC-FRAMING-RAILS-001
 **Title:** Compute the perimeter rail cut list

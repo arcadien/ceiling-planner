@@ -57,6 +57,13 @@
     <label><span>Plate length (m)</span><input id="plate_length_m" type="number" step="0.01" value="2.50"></label>
     <label><span>Plate width (m)</span><input id="plate_width_m" type="number" step="0.01" value="1.20"></label>
     <label><span>Min offcut (m)</span><input id="min_offcut_m" type="number" step="0.01" value="0.30"></label>
+    <label><span>Joints</span>
+      <select id="joint_mode" style="width:150px;padding:4px 6px;font:inherit;border:1px solid #8886;border-radius:5px;background:transparent;color:inherit">
+        <option value="reuse">reuse (least waste)</option>
+        <option value="aligned">aligned grid</option>
+        <option value="running_bond">running bond</option>
+      </select>
+    </label>
     <label><span>Closure tol. (m)</span><input id="closure_tolerance_m" type="number" step="0.01" value="0.02"></label>
   </div>
 
@@ -129,6 +136,7 @@ async function compute() {
     plate_length_m: param("plate_length_m"),
     plate_width_m: param("plate_width_m"),
     min_offcut_m: param("min_offcut_m"),
+    joint_mode: document.getElementById("joint_mode").value,
     closure_tolerance_m: param("closure_tolerance_m"),
   };
   let resp;
@@ -268,6 +276,7 @@ document.getElementById("finish").onclick = finishDraw;
 document.getElementById("clear").onclick = () => { sketch = []; drawSketch(); };
 
 document.getElementById("compute").onclick = compute;
+document.getElementById("joint_mode").onchange = compute;
 compute();
 </script>
 </body>

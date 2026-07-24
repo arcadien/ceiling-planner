@@ -12,6 +12,8 @@ outline edges (length and interior angle) and optional parameters (closure toler
 spacing, plate dimensions, minimum offcut, joint mode, joint doubling). Montants are always
 forced at the plate joints (plate width). On a valid outline it returns HTTP 200 with the
 reconstructed vertices, the montant cut list (each montant flagged if doubled), the rail cut
-list, the plate layout (pieces plus summary), and a `totals` block giving the total montant
-length (counting doubled montants twice), the total rail length, and the plate count. On an outline that fails validation it returns HTTP 400 with the
+list, the plate layout (pieces plus summary), a `totals` block giving the total montant length
+(counting doubled montants twice), the total rail length, and the plate count, and a `section`
+block giving the required span and the selected montant section for single and doubled montants
+(null when the span exceeds the catalog). On an outline that fails validation it returns HTTP 400 with the
 `SurfaceError` code. Invalid parameter values also return HTTP 400. Responses are JSON.

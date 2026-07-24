@@ -55,6 +55,19 @@ and each montant reports whether it is doubled.
 to the walls: every outline edge carries one rail whose length equals the edge length, so the
 rails follow the whole outline. The result lists each rail length in outline order.
 
+### FUNC-FRAMING-SECTION-001
+**Title:** Select the montant section from the required span
+**Dependencies:** FUNC-FRAMING-MONTANTS-001
+**Status:** validated
+**Description:** Given a required free span in meters and whether the montants are doubled
+back-to-back (accolés), the system selects the lightest montant section whose maximum admissible
+span covers the required span, from a catalog of PRÉGYMÉTAL sections (DTU 25.41 / Siniat
+reference): M48-35 (2.00 m single, 2.35 m doubled), M70-35 (2.55 / 3.15), M90-35 (3.05 / 3.80),
+M100-50 (3.60 / 4.40). The catalog is the default and may be overridden, and its entries are
+ordered from lightest to strongest. If no section covers the span, the system reports that the
+span exceeds the catalog, meaning an intermediate support or a longer-span system is required.
+The required span for a plan is the longest montant length.
+
 ### FUNC-PLATE-OPTIM-001
 **Title:** Produce the plasterboard cutting layout with a selectable joint pattern
 **Status:** validated

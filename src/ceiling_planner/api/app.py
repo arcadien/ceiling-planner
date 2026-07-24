@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from ceiling_planner.framing.montants import compute_montants
 from ceiling_planner.framing.rails import compute_rails
+from ceiling_planner.framing.sections import select_section
 from ceiling_planner.geometry.surface import (
     Edge,
     SurfaceError,
@@ -97,6 +98,9 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
 
     montant_length_m = sum(m.length_m * (2 if m.doubled else 1) for m in montants)
     rail_length_m = sum(r.length_m for r in rails)
+    required_span_m = max((m.length_m for m in montants), default=0.0)
+    single_section = select_section(required_span_m, doubled=False)
+    doubled_section = select_section(required_span_m, doubled=True)
     return {
         "vertices": [[x, y] for x, y in polygon.vertices],
         "montants": [
@@ -114,5 +118,10 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
             "montant_length_m": montant_length_m,
             "rail_length_m": rail_length_m,
             "plate_count": plates.plate_count,
+        },
+        "section": {
+            "span_m": required_span_m,
+            "single": single_section.name if single_section else None,
+            "doubled": doubled_section.name if doubled_section else None,
         },
     }

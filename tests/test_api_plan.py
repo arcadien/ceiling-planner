@@ -86,6 +86,29 @@ def test_joint_doubling_counts_montants_twice():
 
 
 @pytest.mark.req("TECH-API-PLAN-001")
+def test_plan_reports_required_section():
+    # Given a 3 m by 3 m room (montant span 3.0 m)
+    edges = [{"length_m": 3.0, "interior_angle_deg": 90.0} for _ in range(4)]
+    data = client.post("/plan", json={"edges": edges}).json()
+
+    # Then the section block reports the span and the single/doubled section choices
+    section = data["section"]
+    assert section["span_m"] == pytest.approx(3.0)
+    assert section["single"] == "M90-35"
+    assert section["doubled"] == "M70-35"
+
+
+@pytest.mark.req("TECH-API-PLAN-001")
+def test_section_is_null_when_span_exceeds_catalog():
+    # Given a 4 m span that no single section covers
+    data = client.post("/plan", json={"edges": SQUARE_EDGES}).json()
+
+    # Then the single choice is null while doubling still reaches M100-50
+    assert data["section"]["single"] is None
+    assert data["section"]["doubled"] == "M100-50"
+
+
+@pytest.mark.req("TECH-API-PLAN-001")
 def test_invalid_outline_returns_400_with_code():
     # Given an outline with too few edges
     response = client.post(

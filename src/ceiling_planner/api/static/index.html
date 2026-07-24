@@ -84,6 +84,7 @@
     <div class="tile"><div class="tile-val" id="ind-rail">–</div><div class="tile-lbl">rail total (m)</div></div>
     <div class="tile"><div class="tile-val" id="ind-plates">–</div><div class="tile-lbl">plates</div></div>
     <div class="tile"><div class="tile-val" id="ind-waste">–</div><div class="tile-lbl">plate waste (m)</div></div>
+    <div class="tile"><div class="tile-val" id="ind-section" style="font-size:16px">–</div><div class="tile-lbl">montant section</div></div>
   </div>
   <div class="legend">
     <span><span class="swatch" style="background:#8fbcff"></span>full plate</span>
@@ -237,6 +238,10 @@ function draw(data) {
   document.getElementById("ind-rail").textContent = t.rail_length_m.toFixed(2);
   document.getElementById("ind-plates").textContent = t.plate_count;
   document.getElementById("ind-waste").textContent = data.plates.waste_length_m.toFixed(2);
+  const s = data.section;
+  const single = s.single || "—", doubled = s.doubled || "—";
+  document.getElementById("ind-section").textContent =
+    "span " + s.span_m.toFixed(2) + " m · " + single + " / " + doubled + " (dbl)";
 }
 
 function redraw() { if (lastPlan) draw(lastPlan); }

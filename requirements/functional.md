@@ -83,3 +83,36 @@ regular staggered seams. `aligned` and `running_bond` do not reuse offcuts and s
 waste. Non-positive dimensions and an unknown `joint_mode` are rejected. The layout lists every
 placed piece — strip band, bearing-direction extent, and kind (`full`, `cut`, or `reused`) — and
 summarizes the plate count, the covered length, and the wasted length.
+
+### BOM-FUNC-LINES-001
+**Title:** Maintain a bill of materials as a list of referenced lines
+**Status:** validated
+**Dependencies:** none
+**Description:** The system maintains a bill of materials (BOM) as an ordered set of lines, each
+identified by a supplier reference (free-text, unique within the BOM, matched case-insensitively
+and trimmed of surrounding whitespace) and carrying a designation, a quantity (strictly
+positive), and a unit (default `pcs`). Lines are added, listed, and removed independently of any
+price information. A non-positive quantity, an empty reference, or a reference that already
+exists in the BOM is rejected, so price captures can be matched to exactly one line.
+
+### BOM-FUNC-PRICES-001
+**Title:** Capture a store price quote for a BOM line
+**Status:** validated
+**Dependencies:** BOM-FUNC-LINES-001
+**Description:** The system records a price capture for a BOM line: a store name, a price
+(strictly positive, in a currency defaulting to EUR), a source URL, and a capture timestamp. A
+capture is matched to a BOM line by reference (case-insensitive, trimmed); if no line carries
+that reference, the capture is rejected with an `unknown_reference` error rather than silently
+creating one, so the caller can prompt for the missing line first. A line may accumulate
+captures from several stores and several captures from the same store over time (e.g. price
+changes); all captures are kept, not overwritten.
+
+### BOM-FUNC-SUMMARY-001
+**Title:** Summarize the best captured price per line and the estimated total
+**Status:** validated
+**Dependencies:** BOM-FUNC-LINES-001, BOM-FUNC-PRICES-001
+**Description:** Given the current BOM and its price captures, the system reports, for each line,
+every captured price sorted ascending and which one is cheapest (store, price, url). It computes
+an estimated total by summing, for each line, quantity times its cheapest captured price, and
+separately lists the lines that have no captured price yet (excluded from the total, reported as
+gaps so the user knows the estimate is partial).

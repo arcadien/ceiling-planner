@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "devis-bom – Capture prix",
+  "version": "0.1.0",
+  "description": "Capture le prix d'une page produit et l'associe à une ligne du BOM devis-bom.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://localhost/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Capturer ce prix dans devis-bom"
+  },
+  "options_page": "options.html"
+}

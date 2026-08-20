@@ -1,0 +1,216 @@
+<title>devis-bom</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --panel: #ffffff;
+    --border: #dcdde1;
+    --text: #1c1c1e;
+    --muted: #6b6b70;
+    --accent: #2563eb;
+    --good: #15803d;
+    --bad: #b91c1c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
+  p.subtitle { color: var(--muted); margin: 0 0 1.5rem; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  form.add-line {
+    display: grid;
+    grid-template-columns: 1fr 2fr 0.6fr 0.6fr auto;
+    gap: 0.6rem;
+    align-items: end;
+  }
+  label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
+  input {
+    width: 100%;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: var(--panel);
+    color: var(--text);
+  }
+  button {
+    padding: 0.5rem 0.9rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent);
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  button.ghost { background: transparent; color: var(--bad); padding: 0.3rem 0.5rem; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
+  .best { color: var(--good); font-weight: 600; }
+  .no-price { color: var(--bad); font-style: italic; }
+  .captures { font-size: 0.8rem; color: var(--muted); }
+  .summary-total { font-size: 1.6rem; font-weight: 700; }
+  .summary-gaps { color: var(--bad); font-size: 0.85rem; margin-top: 0.4rem; }
+  .error { color: var(--bad); font-size: 0.85rem; margin-top: 0.5rem; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+</style>
+
+<h1>devis-bom</h1>
+<p class="subtitle">
+  Bill of materials et comparaison des prix captur&eacute;s via l'extension navigateur.
+</p>
+
+<section class="panel">
+  <h2 style="margin-top:0; font-size:1rem;">Ajouter une ligne</h2>
+  <form class="add-line" id="add-line-form">
+    <div>
+      <label for="reference">R&eacute;f&eacute;rence</label>
+      <input id="reference" name="reference" required placeholder="Legrand 411600" />
+    </div>
+    <div>
+      <label for="designation">D&eacute;signation</label>
+      <input id="designation" name="designation" required placeholder="Disjoncteur 16A courbe C" />
+    </div>
+    <div>
+      <label for="quantity">Quantit&eacute;</label>
+      <input id="quantity" name="quantity" type="number" step="any" min="0.01" value="1" required />
+    </div>
+    <div>
+      <label for="unit">Unit&eacute;</label>
+      <input id="unit" name="unit" value="pcs" />
+    </div>
+    <button type="submit">Ajouter</button>
+  </form>
+  <div class="error" id="form-error" hidden></div>
+</section>
+
+<section class="panel">
+  <div class="toolbar">
+    <h2 style="margin:0; font-size:1rem;">Lignes et prix captur&eacute;s</h2>
+    <button type="button" id="refresh-btn">Actualiser</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>R&eacute;f&eacute;rence</th>
+        <th>D&eacute;signation</th>
+        <th>Qt&eacute;</th>
+        <th>Meilleur prix</th>
+        <th>Tous les prix captur&eacute;s</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="lines-body"></tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2 style="margin-top:0; font-size:1rem;">Estimation</h2>
+  <div class="summary-total" id="summary-total">&mdash;</div>
+  <div class="summary-gaps" id="summary-gaps"></div>
+</section>
+
+<script>
+  const API_BASE = "";
+
+  async function fetchJson(path, options) {
+    const response = await fetch(API_BASE + path, options);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    return data;
+  }
+
+  function money(value, currency) {
+    return new Intl.NumberFormat("fr-FR", { style: "currency", currency: currency || "EUR" }).format(value);
+  }
+
+  async function loadLines() {
+    const lines = await fetchJson("/api/lines");
+    const body = document.getElementById("lines-body");
+    body.innerHTML = "";
+    for (const entry of lines) {
+      const row = document.createElement("tr");
+      const best = entry.best_capture;
+      const capturesText = entry.captures
+        .map((c) => `${c.store}: ${money(c.price, c.currency)}`)
+        .join(" · ");
+      row.innerHTML = `
+        <td>${entry.line.reference}</td>
+        <td>${entry.line.designation}</td>
+        <td>${entry.line.quantity} ${entry.line.unit}</td>
+        <td>${
+          best
+            ? `<span class="best">${money(best.price, best.currency)}</span> <span class="captures">(${best.store})</span>`
+            : `<span class="no-price">aucun prix</span>`
+        }</td>
+        <td class="captures">${capturesText || "&mdash;"}</td>
+        <td><button type="button" class="ghost" data-delete="${entry.line.id}">Supprimer</button></td>
+      `;
+      body.appendChild(row);
+    }
+    body.querySelectorAll("[data-delete]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        await fetchJson(`/api/lines/${btn.dataset.delete}`, { method: "DELETE" });
+        await refresh();
+      });
+    });
+  }
+
+  async function loadSummary() {
+    const summary = await fetchJson("/api/summary");
+    document.getElementById("summary-total").textContent = money(summary.estimated_total, summary.currency);
+    const gaps = document.getElementById("summary-gaps");
+    gaps.textContent = summary.gaps.length
+      ? `Sans prix capturé : ${summary.gaps.map((g) => g.reference).join(", ")}`
+      : "";
+  }
+
+  async function refresh() {
+    await Promise.all([loadLines(), loadSummary()]);
+  }
+
+  document.getElementById("add-line-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.target;
+    const errorBox = document.getElementById("form-error");
+    errorBox.hidden = true;
+    try {
+      await fetchJson("/api/lines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reference: form.reference.value,
+          designation: form.designation.value,
+          quantity: parseFloat(form.quantity.value),
+          unit: form.unit.value || "pcs",
+        }),
+      });
+      form.reset();
+      form.unit.value = "pcs";
+      form.quantity.value = "1";
+      await refresh();
+    } catch (err) {
+      errorBox.textContent = err.message;
+      errorBox.hidden = false;
+    }
+  });
+
+  document.getElementById("refresh-btn").addEventListener("click", refresh);
+
+  refresh();
+</script>

@@ -17,3 +17,16 @@ list, the plate layout (pieces plus summary), a `totals` block giving the total 
 block giving the required span and the selected montant section for single and doubled montants
 (null when the span exceeds the catalog). On an outline that fails validation it returns HTTP 400 with the
 `SurfaceError` code. Invalid parameter values also return HTTP 400. Responses are JSON.
+
+### BOM-TECH-API-001
+**Title:** Expose HTTP endpoints for BOM lines, price capture, and summary
+**Status:** validated
+**Dependencies:** BOM-FUNC-LINES-001, BOM-FUNC-PRICES-001, BOM-FUNC-SUMMARY-001
+**Description:** The system exposes a standalone HTTP API, independent of `ceiling-planner`'s
+`/plan` API: `GET /api/lines` (list lines with their captures), `POST /api/lines` (create a
+line), `DELETE /api/lines/{line_id}` (remove a line and its captures), `POST /api/prices`
+(record a price capture, HTTP 404 with code `unknown_reference` when the reference matches no
+line), and `GET /api/summary` (best price per line, estimated total, gaps). Cross-origin requests
+are allowed from any origin so the companion browser extension (running under a
+`chrome-extension://` origin) can call the API directly; this is an accepted tradeoff for a
+tool that is run locally for a single user, not exposed beyond `localhost`. Responses are JSON.

@@ -56,6 +56,7 @@
     <button id="clear" class="icon" hidden>clear</button>
   </div>
   <p id="drawhint" style="font-size:12px;opacity:.7;margin:0" hidden>Click points on the grid (1&nbsp;m squares); double-click or press finish to close.</p>
+  <p id="draw-length" style="font-size:13px;font-weight:600;margin:4px 0" hidden></p>
 
   <h2>Parameters</h2>
   <div class="params">
@@ -74,7 +75,10 @@
     <label><span>Closure tol. (m)</span><input id="closure_tolerance_m" type="number" step="0.01" value="0.02"></label>
   </div>
 
-  <div class="row"><button id="compute" class="primary">Compute plan</button></div>
+  <div class="row">
+    <button id="compute" class="primary">Compute plan</button>
+    <button id="reset">Reset all</button>
+  </div>
   <div id="error"></div>
 </aside>
 
@@ -248,7 +252,7 @@ function redraw() { if (lastPlan) draw(lastPlan); }
 
 // ---- Draw mode: sketch the outline on a metric grid, derive edges via /edges ----
 const DRAW_SCALE = 40, DRAW_MARGIN = 40;  // pixels per meter, canvas margin
-let drawing = false, sketch = [];
+let drawing = false, sketch = [], cursor = null;
 const sketchCanvas = document.getElementById("schema");
 
 function eventToMeters(evt) {
@@ -271,13 +275,31 @@ function drawSketch() {
   sketch.forEach((p, i) => (i ? ctx.lineTo(px(p[0]), py(p[1])) : ctx.moveTo(px(p[0]), py(p[1]))));
   ctx.stroke();
   sketch.forEach(p => { ctx.beginPath(); ctx.arc(px(p[0]), py(p[1]), 4, 0, 7); ctx.fill(); });
+
+  // Live preview of the segment being drawn, with its length.
+  const readout = document.getElementById("draw-length");
+  if (cursor && sketch.length > 0) {
+    const last = sketch[sketch.length - 1];
+    const len = Math.hypot(cursor[0] - last[0], cursor[1] - last[1]);
+    ctx.strokeStyle = "#c0392b"; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(px(last[0]), py(last[1])); ctx.lineTo(px(cursor[0]), py(cursor[1])); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#c0392b"; ctx.font = "600 14px system-ui, sans-serif";
+    ctx.fillText(len.toFixed(2) + " m", px(cursor[0]) + 8, py(cursor[1]) - 8);
+    readout.textContent = "Segment: " + len.toFixed(2) + " m";
+    readout.hidden = false;
+  } else if (readout) {
+    readout.textContent = "";
+  }
 }
 
 function startDraw() {
-  drawing = true; sketch = [];
+  drawing = true; sketch = []; cursor = null;
   document.getElementById("finish").hidden = false;
   document.getElementById("clear").hidden = false;
   document.getElementById("drawhint").hidden = false;
+  document.getElementById("draw-length").hidden = false;
+  document.getElementById("draw-length").textContent = "";
   document.getElementById("error").textContent = "";
   drawSketch();
 }
@@ -285,10 +307,11 @@ function startDraw() {
 async function finishDraw() {
   if (!drawing) return;
   if (sketch.length < 3) { document.getElementById("error").textContent = "Draw at least 3 points"; return; }
-  drawing = false;
+  drawing = false; cursor = null;
   document.getElementById("finish").hidden = true;
   document.getElementById("clear").hidden = true;
   document.getElementById("drawhint").hidden = true;
+  document.getElementById("draw-length").hidden = true;
   let resp;
   try {
     resp = await fetch("/edges", {
@@ -305,12 +328,38 @@ async function finishDraw() {
   compute();
 }
 
-sketchCanvas.addEventListener("click", e => { if (drawing) { sketch.push(eventToMeters(e)); drawSketch(); } });
+sketchCanvas.addEventListener("click", e => { if (drawing) { sketch.push(eventToMeters(e)); cursor = null; drawSketch(); } });
+sketchCanvas.addEventListener("mousemove", e => { if (drawing) { cursor = eventToMeters(e); drawSketch(); } });
+sketchCanvas.addEventListener("mouseleave", () => { if (drawing) { cursor = null; drawSketch(); } });
 sketchCanvas.addEventListener("dblclick", () => { if (drawing) { sketch.pop(); finishDraw(); } });
 document.getElementById("draw").onclick = startDraw;
 document.getElementById("finish").onclick = finishDraw;
-document.getElementById("clear").onclick = () => { sketch = []; drawSketch(); };
+document.getElementById("clear").onclick = () => { sketch = []; cursor = null; drawSketch(); };
 
+function setVal(id, v) { document.getElementById(id).value = v; }
+
+function resetAll() {
+  drawing = false; sketch = []; cursor = null; lastPlan = null;
+  document.getElementById("finish").hidden = true;
+  document.getElementById("clear").hidden = true;
+  document.getElementById("drawhint").hidden = true;
+  document.getElementById("draw-length").hidden = true;
+  edgesBody.innerHTML = "";
+  setVal("montant_spacing_m", "0.60"); setVal("plate_length_m", "2.50");
+  setVal("plate_width_m", "1.20"); setVal("min_offcut_m", "0.30");
+  setVal("closure_tolerance_m", "0.02");
+  document.getElementById("joint_mode").value = "reuse";
+  document.getElementById("double_joints").checked = false;
+  document.getElementById("toggle-montants").checked = true;
+  document.getElementById("toggle-rails").checked = true;
+  const ctx = sketchCanvas.getContext("2d");
+  ctx.clearRect(0, 0, sketchCanvas.width, sketchCanvas.height);
+  ["ind-montant", "ind-rail", "ind-plates", "ind-waste", "ind-section"]
+    .forEach(id => (document.getElementById(id).textContent = "–"));
+  document.getElementById("error").textContent = "";
+}
+
+document.getElementById("reset").onclick = resetAll;
 document.getElementById("compute").onclick = compute;
 document.getElementById("joint_mode").onchange = compute;
 document.getElementById("double_joints").onchange = compute;

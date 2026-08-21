@@ -28,5 +28,8 @@ canvas over a one-meter grid to sketch the outline, with a live preview of the c
 and segments. Finishing the sketch (double-click or a finish button) sends the points to
 `POST /edges` and fills the editable edge list with the derived lengths and interior angles,
 then computes and renders the plan. While a segment is being drawn, the length from the last
-placed point to the cursor is shown in real time as the mouse moves. The user can refine the
-exact lengths and angles afterward, and can clear the sketch to start over.
+placed point to the cursor is shown in real time as the mouse moves. Holding Ctrl snaps the
+segment being drawn to the nearest 45-degree direction (keeping its length). The cursor is also
+magnetic to existing vertices: it snaps onto a nearby vertex, and onto the first vertex to help
+close the outline — clicking while snapped to the first vertex closes the sketch. The user can
+refine the exact lengths and angles afterward, and can clear the sketch to start over.

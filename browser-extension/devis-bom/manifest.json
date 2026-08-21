@@ -9,5 +9,10 @@
     "default_popup": "popup.html",
     "default_title": "Capturer ce prix dans devis-bom"
   },
-  "options_page": "options.html"
+  "options_page": "options.html",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "devis-bom@arcadien.dev"
+    }
+  }
 }

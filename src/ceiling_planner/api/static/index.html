@@ -132,6 +132,16 @@ function collectEdges() {
 
 function param(id) { return parseFloat(document.getElementById(id).value); }
 
+// Twice the signed area; positive when the vertices wind counter-clockwise.
+function signedArea(vertices) {
+  let s = 0;
+  for (let i = 0; i < vertices.length; i++) {
+    const [x1, y1] = vertices[i], [x2, y2] = vertices[(i + 1) % vertices.length];
+    s += x1 * y2 - x2 * y1;
+  }
+  return s;
+}
+
 // Interior x-intervals where a horizontal line at y crosses the outline (even-odd scan line).
 function interiorIntervals(vertices, y) {
   const xs = [];
@@ -180,7 +190,7 @@ function draw(data) {
   lastPlan = data;
   const canvas = document.getElementById("schema");
   const ctx = canvas.getContext("2d");
-  const W = canvas.width, H = canvas.height, m = 40;
+  const W = canvas.width, H = canvas.height, m = 54;  // margin leaves room for edge labels
   ctx.clearRect(0, 0, W, H);
 
   const v = data.vertices;
@@ -236,6 +246,26 @@ function draw(data) {
   ctx.beginPath();
   v.forEach((p, i) => (i ? ctx.lineTo(px(p[0]), py(p[1])) : ctx.moveTo(px(p[0]), py(p[1]))));
   ctx.closePath(); ctx.stroke();
+
+  // Edge length labels, placed just outside the outline.
+  const ccw = signedArea(v) >= 0;  // outward normal is the right normal for CCW winding
+  ctx.fillStyle = "#111";
+  ctx.font = "600 13px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i < v.length; i++) {
+    const [x1, y1] = v[i], [x2, y2] = v[(i + 1) % v.length];
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    if (len < 1e-9) continue;
+    const dx = (x2 - x1) / len, dy = (y2 - y1) / len;
+    let nx = dy, ny = -dx;                 // right normal (outward for CCW, meters)
+    if (!ccw) { nx = -nx; ny = -ny; }
+    const mx = px((x1 + x2) / 2), my = py((y1 + y2) / 2);
+    let ox = nx * scale, oy = -ny * scale; // to canvas space (y flipped)
+    const on = Math.hypot(ox, oy) || 1;
+    ctx.fillText(len.toFixed(2) + " m", mx + (ox / on) * 16, my + (oy / on) * 16);
+  }
+  ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
 
   const t = data.totals;
   document.getElementById("ind-montant").textContent = t.montant_length_m.toFixed(2);

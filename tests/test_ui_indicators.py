@@ -25,6 +25,15 @@ def test_page_exposes_material_indicators():
 
 
 @pytest.mark.req("UI-SCHEMA-001")
+def test_page_offers_a_reset_control():
+    # Given the served page
+    body = client.get("/").text
+
+    # Then it exposes a reset control
+    assert 'id="reset"' in body
+
+
+@pytest.mark.req("UI-SCHEMA-001")
 def test_page_exposes_layer_toggles():
     # Given the served page
     body = client.get("/").text

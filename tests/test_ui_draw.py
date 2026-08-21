@@ -28,3 +28,13 @@ def test_page_sends_drawn_points_to_the_edges_endpoint():
 
     # Then its script posts the sketch to /edges
     assert "/edges" in body
+
+
+@pytest.mark.req("UI-DRAW-001")
+def test_page_shows_live_segment_length_while_drawing():
+    # Given the served page
+    body = client.get("/").text
+
+    # Then it carries a live-length readout and tracks the cursor to update it
+    assert 'id="draw-length"' in body
+    assert "mousemove" in body

@@ -38,3 +38,13 @@ def test_page_shows_live_segment_length_while_drawing():
     # Then it carries a live-length readout and tracks the cursor to update it
     assert 'id="draw-length"' in body
     assert "mousemove" in body
+
+
+@pytest.mark.req("UI-DRAW-001")
+def test_page_supports_angle_snap_and_magnetic_vertices():
+    # Given the served page
+    body = client.get("/").text
+
+    # Then its draw code reacts to the Ctrl key (45-degree snap) and snaps to vertices
+    assert "ctrlKey" in body
+    assert "snap" in body.lower()

@@ -13,7 +13,8 @@ plan. On a successful response it draws a schema on a canvas: the outline, the m
 bearing-wall rails, and the plasterboard pieces colored by kind (full, cut, reused), with a
 legend. It displays indicators for the total montant length, the total rail length, the plate
 count, and the required montant section (for the current span), and offers toggles to show or
-hide the montant and rail overlays on the schema. A
+hide the montant and rail overlays on the schema. A reset control returns the page to its
+initial empty state (no edges, default parameters, blank schema). A
 validation error is shown to the user as a readable message. The page is self-contained (its
 script and styles are served by the application, no external CDN).
 
@@ -25,5 +26,6 @@ script and styles are served by the application, no external CDN).
 canvas over a one-meter grid to sketch the outline, with a live preview of the current points
 and segments. Finishing the sketch (double-click or a finish button) sends the points to
 `POST /edges` and fills the editable edge list with the derived lengths and interior angles,
-then computes and renders the plan. The user can refine the exact lengths and angles afterward,
-and can clear the sketch to start over.
+then computes and renders the plan. While a segment is being drawn, the length from the last
+placed point to the cursor is shown in real time as the mouse moves. The user can refine the
+exact lengths and angles afterward, and can clear the sketch to start over.

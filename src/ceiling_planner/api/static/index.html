@@ -55,7 +55,7 @@
     <button id="finish" class="icon" hidden>finish</button>
     <button id="clear" class="icon" hidden>clear</button>
   </div>
-  <p id="drawhint" style="font-size:12px;opacity:.7;margin:0" hidden>Click points on the grid (1&nbsp;m squares); double-click or press finish to close.</p>
+  <p id="drawhint" style="font-size:12px;opacity:.7;margin:0" hidden>Click points on the grid (1&nbsp;m squares). Hold Ctrl to snap to 45°; vertices are magnetic — click the first one to close.</p>
   <p id="draw-length" style="font-size:13px;font-weight:600;margin:4px 0" hidden></p>
 
   <h2>Parameters</h2>
@@ -282,14 +282,36 @@ function redraw() { if (lastPlan) draw(lastPlan); }
 
 // ---- Draw mode: sketch the outline on a metric grid, derive edges via /edges ----
 const DRAW_SCALE = 40, DRAW_MARGIN = 40;  // pixels per meter, canvas margin
-let drawing = false, sketch = [], cursor = null;
+let drawing = false, sketch = [], cursor = null, snapVertex = -1;
 const sketchCanvas = document.getElementById("schema");
+const SNAP_M = 12 / DRAW_SCALE;  // vertex magnetism radius (meters)
 
 function eventToMeters(evt) {
   const r = sketchCanvas.getBoundingClientRect();
   const px = (evt.clientX - r.left) * (sketchCanvas.width / r.width);
   const py = (evt.clientY - r.top) * (sketchCanvas.height / r.height);
   return [(px - DRAW_MARGIN) / DRAW_SCALE, (sketchCanvas.height - DRAW_MARGIN - py) / DRAW_SCALE];
+}
+
+// Apply drawing aids: magnetic vertices first, then Ctrl 45-degree angle snap.
+// Returns { pt: [x,y], vertexIndex } where vertexIndex >= 0 means snapped onto that vertex.
+function snapPoint(raw, ctrlHeld) {
+  let idx = -1, bestD = SNAP_M;
+  for (let i = 0; i < sketch.length; i++) {
+    const d = Math.hypot(raw[0] - sketch[i][0], raw[1] - sketch[i][1]);
+    if (d < bestD) { bestD = d; idx = i; }
+  }
+  if (idx >= 0) return { pt: [sketch[idx][0], sketch[idx][1]], vertexIndex: idx };
+  if (ctrlHeld && sketch.length > 0) {
+    const last = sketch[sketch.length - 1];
+    const dx = raw[0] - last[0], dy = raw[1] - last[1];
+    const dist = Math.hypot(dx, dy);
+    if (dist > 1e-9) {
+      const snapped = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4);
+      return { pt: [last[0] + dist * Math.cos(snapped), last[1] + dist * Math.sin(snapped)], vertexIndex: -1 };
+    }
+  }
+  return { pt: raw, vertexIndex: -1 };
 }
 
 function drawSketch() {
@@ -306,17 +328,25 @@ function drawSketch() {
   ctx.stroke();
   sketch.forEach(p => { ctx.beginPath(); ctx.arc(px(p[0]), py(p[1]), 4, 0, 7); ctx.fill(); });
 
-  // Live preview of the segment being drawn, with its length.
+  // Highlight the vertex the cursor is magnetized to (green ring; larger on the first vertex).
+  if (drawing && snapVertex >= 0) {
+    const target = sketch[snapVertex];
+    ctx.strokeStyle = "#1a9d4f"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(px(target[0]), py(target[1]), snapVertex === 0 ? 9 : 6, 0, 7); ctx.stroke();
+  }
+
+  // Live preview of the segment being drawn, with its length and angle.
   const readout = document.getElementById("draw-length");
   if (cursor && sketch.length > 0) {
     const last = sketch[sketch.length - 1];
     const len = Math.hypot(cursor[0] - last[0], cursor[1] - last[1]);
+    const deg = (Math.atan2(cursor[1] - last[1], cursor[0] - last[0]) * 180 / Math.PI + 360) % 360;
     ctx.strokeStyle = "#c0392b"; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(px(last[0]), py(last[1])); ctx.lineTo(px(cursor[0]), py(cursor[1])); ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = "#c0392b"; ctx.font = "600 14px system-ui, sans-serif";
-    ctx.fillText(len.toFixed(2) + " m", px(cursor[0]) + 8, py(cursor[1]) - 8);
-    readout.textContent = "Segment: " + len.toFixed(2) + " m";
+    ctx.fillText(len.toFixed(2) + " m", px(cursor[0]) + 10, py(cursor[1]) - 8);
+    readout.textContent = "Segment: " + len.toFixed(2) + " m @ " + deg.toFixed(0) + "°";
     readout.hidden = false;
   } else if (readout) {
     readout.textContent = "";
@@ -324,7 +354,7 @@ function drawSketch() {
 }
 
 function startDraw() {
-  drawing = true; sketch = []; cursor = null;
+  drawing = true; sketch = []; cursor = null; snapVertex = -1;
   document.getElementById("finish").hidden = false;
   document.getElementById("clear").hidden = false;
   document.getElementById("drawhint").hidden = false;
@@ -337,7 +367,7 @@ function startDraw() {
 async function finishDraw() {
   if (!drawing) return;
   if (sketch.length < 3) { document.getElementById("error").textContent = "Draw at least 3 points"; return; }
-  drawing = false; cursor = null;
+  drawing = false; cursor = null; snapVertex = -1;
   document.getElementById("finish").hidden = true;
   document.getElementById("clear").hidden = true;
   document.getElementById("drawhint").hidden = true;
@@ -358,18 +388,27 @@ async function finishDraw() {
   compute();
 }
 
-sketchCanvas.addEventListener("click", e => { if (drawing) { sketch.push(eventToMeters(e)); cursor = null; drawSketch(); } });
-sketchCanvas.addEventListener("mousemove", e => { if (drawing) { cursor = eventToMeters(e); drawSketch(); } });
-sketchCanvas.addEventListener("mouseleave", () => { if (drawing) { cursor = null; drawSketch(); } });
+sketchCanvas.addEventListener("click", e => {
+  if (!drawing) return;
+  const s = snapPoint(eventToMeters(e), e.ctrlKey);
+  if (s.vertexIndex === 0 && sketch.length >= 3) { finishDraw(); return; }  // click first vertex to close
+  sketch.push(s.pt); cursor = null; snapVertex = -1; drawSketch();
+});
+sketchCanvas.addEventListener("mousemove", e => {
+  if (!drawing) return;
+  const s = snapPoint(eventToMeters(e), e.ctrlKey);
+  cursor = s.pt; snapVertex = s.vertexIndex; drawSketch();
+});
+sketchCanvas.addEventListener("mouseleave", () => { if (drawing) { cursor = null; snapVertex = -1; drawSketch(); } });
 sketchCanvas.addEventListener("dblclick", () => { if (drawing) { sketch.pop(); finishDraw(); } });
 document.getElementById("draw").onclick = startDraw;
 document.getElementById("finish").onclick = finishDraw;
-document.getElementById("clear").onclick = () => { sketch = []; cursor = null; drawSketch(); };
+document.getElementById("clear").onclick = () => { sketch = []; cursor = null; snapVertex = -1; drawSketch(); };
 
 function setVal(id, v) { document.getElementById(id).value = v; }
 
 function resetAll() {
-  drawing = false; sketch = []; cursor = null; lastPlan = null;
+  drawing = false; sketch = []; cursor = null; snapVertex = -1; lastPlan = null;
   document.getElementById("finish").hidden = true;
   document.getElementById("clear").hidden = true;
   document.getElementById("drawhint").hidden = true;

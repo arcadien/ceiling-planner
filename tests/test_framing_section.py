@@ -6,6 +6,7 @@ catalog.
 """
 
 import pytest
+
 from ceiling_planner.framing.sections import (
     DEFAULT_SECTIONS,
     MontantSection,

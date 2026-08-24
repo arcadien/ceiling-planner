@@ -55,7 +55,7 @@
     <button id="finish" class="icon" hidden>finish</button>
     <button id="clear" class="icon" hidden>clear</button>
   </div>
-  <p id="drawhint" style="font-size:12px;opacity:.7;margin:0" hidden>Click points on the grid (1&nbsp;m squares). Hold Ctrl to snap to 45°; vertices are magnetic — click the first one to close.</p>
+  <p id="drawhint" style="font-size:12px;opacity:.7;margin:0" hidden>Click points on the grid (1&nbsp;m squares). Hold Shift (or Ctrl) to snap to 45°; vertices are magnetic — click the first one to close.</p>
   <p id="draw-length" style="font-size:13px;font-weight:600;margin:4px 0" hidden></p>
 
   <h2>Parameters</h2>
@@ -388,19 +388,21 @@ async function finishDraw() {
   compute();
 }
 
+const angleSnapHeld = e => e.shiftKey || e.ctrlKey || e.metaKey;  // Shift is macOS-safe
 sketchCanvas.addEventListener("click", e => {
   if (!drawing) return;
-  const s = snapPoint(eventToMeters(e), e.ctrlKey);
+  const s = snapPoint(eventToMeters(e), angleSnapHeld(e));
   if (s.vertexIndex === 0 && sketch.length >= 3) { finishDraw(); return; }  // click first vertex to close
   sketch.push(s.pt); cursor = null; snapVertex = -1; drawSketch();
 });
 sketchCanvas.addEventListener("mousemove", e => {
   if (!drawing) return;
-  const s = snapPoint(eventToMeters(e), e.ctrlKey);
+  const s = snapPoint(eventToMeters(e), angleSnapHeld(e));
   cursor = s.pt; snapVertex = s.vertexIndex; drawSketch();
 });
 sketchCanvas.addEventListener("mouseleave", () => { if (drawing) { cursor = null; snapVertex = -1; drawSketch(); } });
 sketchCanvas.addEventListener("dblclick", () => { if (drawing) { sketch.pop(); finishDraw(); } });
+sketchCanvas.addEventListener("contextmenu", e => { if (drawing) e.preventDefault(); });  // keep Ctrl+click usable
 document.getElementById("draw").onclick = startDraw;
 document.getElementById("finish").onclick = finishDraw;
 document.getElementById("clear").onclick = () => { sketch = []; cursor = null; snapVertex = -1; drawSketch(); };

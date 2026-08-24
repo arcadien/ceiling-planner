@@ -44,7 +44,8 @@ def select_section(
     longer-span system is required).
     """
     for section in catalog:
-        if section.max_span_m(doubled) >= span_m:
+        # Small tolerance so a span at a catalog limit (e.g. 2.00 m) is not lost to float noise.
+        if section.max_span_m(doubled) >= span_m - 1e-6:
             return section
     return None
 

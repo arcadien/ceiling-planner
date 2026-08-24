@@ -172,7 +172,8 @@ def _strips(
     """Each strip as ``(y_min, y_max, intervals)`` where intervals are interior (x_start, x_end)."""
     ys = [y for _, y in polygon.vertices]
     y_min, y_max = min(ys), max(ys)
-    strip_count = max(1, math.ceil((y_max - y_min) / strip_width_m))
+    # Subtract a tiny epsilon so float noise in a reconstructed height does not add a sliver strip.
+    strip_count = max(1, math.ceil((y_max - y_min) / strip_width_m - 1e-6))
 
     strips: list[tuple[float, float, list[tuple[float, float]]]] = []
     for i in range(strip_count):

@@ -214,20 +214,21 @@ function draw(data) {
     ctx.strokeRect(x, y, (p.x_end_m - p.x_start_m) * scale, (p.y_max_m - p.y_min_m) * scale);
   }
 
-  // Montants overlay (toggleable): a line at each offset; doubled joint montants draw back-to-back.
+  // Montants overlay (toggleable): each montant is a segment; doubled ones draw back-to-back.
   if (document.getElementById("toggle-montants").checked) {
     ctx.lineWidth = 1;
-    const doubled = new Set(data.montants.filter(mm => mm.doubled).map(mm => mm.offset_m.toFixed(6)));
-    const offsets = [...new Set(data.montants.map(mm => mm.offset_m.toFixed(6)))].map(parseFloat);
-    for (const off of offsets) {
-      const probe = Math.min(Math.max(off, minY + 1e-9), maxY - 1e-9);
-      const isDoubled = doubled.has(off.toFixed(6));
-      ctx.strokeStyle = isDoubled ? "#c0392b" : "#999";
-      const shifts = isDoubled ? [-2, 2] : [0];  // back-to-back pair
-      for (const [xa, xb] of interiorIntervals(v, probe)) {
-        for (const s of shifts) {
-          ctx.beginPath(); ctx.moveTo(px(xa), py(off) + s); ctx.lineTo(px(xb), py(off) + s); ctx.stroke();
+    for (const mm of data.montants) {
+      const ax = px(mm.x1), ay = py(mm.y1), bx = px(mm.x2), by = py(mm.y2);
+      if (mm.doubled) {
+        const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len * 2, ny = dx / len * 2;  // perpendicular offset for the pair
+        ctx.strokeStyle = "#c0392b";
+        for (const s of [-1, 1]) {
+          ctx.beginPath(); ctx.moveTo(ax + s * nx, ay + s * ny); ctx.lineTo(bx + s * nx, by + s * ny); ctx.stroke();
         }
+      } else {
+        ctx.strokeStyle = "#999";
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
       }
     }
   }
@@ -246,7 +247,7 @@ function draw(data) {
   ctx.strokeStyle = "#8e44ad";
   ctx.lineWidth = 3;
   for (const e of (data.entretoises || [])) {
-    ctx.beginPath(); ctx.moveTo(px(e.x_m), py(e.y_min_m)); ctx.lineTo(px(e.x_m), py(e.y_max_m)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(e.x1), py(e.y1)); ctx.lineTo(px(e.x2), py(e.y2)); ctx.stroke();
   }
 
   // Outline.

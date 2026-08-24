@@ -10,9 +10,9 @@
 **Description:** The system serves a single web page at the root path. The page lets the user
 add and remove outline edges (length and interior angle), set the parameters, and request a
 plan. On a successful response it draws a schema on a canvas: the outline, the montants, the
-bearing-wall rails, and the plasterboard pieces colored by kind (full, cut, reused), with a
-legend. Each outline edge is labelled with its length in meters, placed just outside the
-outline. It displays indicators for the total montant length, the total rail length, the plate
+bearing-wall rails, the entretoises under interior plate butt joints, and the plasterboard
+pieces colored by kind (full, cut, reused), with a legend. Each outline edge is labelled with
+its length in meters, placed just outside the outline. It displays indicators for the total montant length, the total rail length, the plate
 count, and the required montant section (for the current span), and offers toggles to show or
 hide the montant and rail overlays on the schema. A reset control returns the page to its
 initial empty state (no edges, default parameters, blank schema). A

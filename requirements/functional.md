@@ -68,6 +68,19 @@ ordered from lightest to strongest. If no section covers the span, the system re
 span exceeds the catalog, meaning an intermediate support or a longer-span system is required.
 The required span for a plan is the longest montant length.
 
+### FUNC-FRAMING-ENTRETOISE-001
+**Title:** Compute entretoises under interior plate butt joints
+**Dependencies:** FUNC-PLATE-OPTIM-001, FUNC-FRAMING-MONTANTS-001
+**Status:** validated
+**Description:** Montants run parallel to the bearing direction and carry the plate edges
+parallel to them; a plate butt joint (a seam perpendicular to the montants) is not carried
+unless it lies against a wall. For each interior butt joint — a boundary shared by two contiguous
+plate pieces within the same strip — the system returns an entretoise (cross-brace) running
+along that joint across the strip band, so both plate edges are supported. A boundary at the
+outline (a wall, carried by the rail) yields no entretoise, and a gap between pieces (disjoint
+room parts) yields none. Each entretoise reports its position across the bearing direction, its
+strip band, and its length (the band height).
+
 ### FUNC-PLATE-OPTIM-001
 **Title:** Produce the plasterboard cutting layout with a selectable joint pattern
 **Status:** validated

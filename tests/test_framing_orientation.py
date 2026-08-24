@@ -5,8 +5,8 @@ The montants run in the shortest dimension. ``bearing_axis`` returns the axis th
 """
 
 import pytest
-from ceiling_planner.framing.orientation import bearing_axis, transposed
 
+from ceiling_planner.framing.orientation import bearing_axis, transposed
 from ceiling_planner.geometry.surface import Polygon
 
 

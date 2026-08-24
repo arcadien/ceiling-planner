@@ -56,11 +56,11 @@ several separate pieces at the same position. Each montant carries its span endp
 bearing direction (start and end), so it is a full segment and can be drawn in any orientation. A non-positive spacing is rejected. Boundary
 positions are evaluated just inside the outline so they report the adjacent interior span. The
 default spacing is a provisional 0.60 m parameter, to be confirmed against the applicable DTU.
-An optional joint spacing forces an extra montant at every interior strip boundary (each
-multiple of the joint spacing from the near extremity) so a montant always backs a plasterboard
-joint; when the joint spacing is unset, no joints are forced. Joint montants may be doubled
-back-to-back (each adjoining plate then screws to its own montant); doubling is off by default,
-and each montant reports whether it is doubled.
+An optional list of forced offsets places an extra montant at each given position (the plate
+butt-joint positions), so a montant always backs a plasterboard joint; when the list is empty,
+no joints are forced. Those forced (joint) montants may be doubled back-to-back (each adjoining
+plate then screws to its own montant); doubling is off by default, and each montant reports
+whether it is doubled.
 
 ### FUNC-FRAMING-RAILS-001
 **Title:** Compute the perimeter rail cut list
@@ -86,7 +86,11 @@ The required span for a plan is the longest montant length.
 ### FUNC-FRAMING-ENTRETOISE-001
 **Title:** Compute entretoises under interior plate butt joints
 **Dependencies:** FUNC-PLATE-OPTIM-001, FUNC-FRAMING-MONTANTS-001
-**Status:** validated
+**Status:** cancelled
+**Note:** Superseded once plates are laid perpendicular to the montants (FUNC-FRAMING-ORIENT-001):
+butt joints then run parallel to the montants and are backed by a forced montant, not an
+entretoise. The `compute_entretoises` helper is retained only to locate those butt-joint
+positions for montant forcing; no entretoises are emitted in the plan.
 **Description:** Montants run parallel to the bearing direction and carry the plate edges
 parallel to them; a plate butt joint (a seam perpendicular to the montants) is not carried
 unless it lies against a wall. For each interior butt joint — a boundary shared by two contiguous

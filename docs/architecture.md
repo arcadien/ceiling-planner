@@ -27,7 +27,7 @@ graph TD
 | Component | Responsibility | Requirement(s) |
 |-----------|----------------|----------------|
 | surface-validator | Convert an ordered edge sequence (length + interior angle) into a polygon and validate it, and derive an edge sequence back from ordered vertices | FUNC-SURFACE-INPUT-001, FUNC-SURFACE-FROMPOINTS-001 |
-| framing-calculator | Compute the montant, rail, and entretoise layout for a self-supporting ceiling, and select the montant section from the required span | FUNC-FRAMING-MONTANTS-001, FUNC-FRAMING-RAILS-001, FUNC-FRAMING-SECTION-001, FUNC-FRAMING-ENTRETOISE-001 |
+| framing-calculator | Choose the bearing axis, then compute the montant, rail, and entretoise layout for a self-supporting ceiling, and select the montant section from the required span | FUNC-FRAMING-ORIENT-001, FUNC-FRAMING-MONTANTS-001, FUNC-FRAMING-RAILS-001, FUNC-FRAMING-SECTION-001, FUNC-FRAMING-ENTRETOISE-001 |
 | api | Expose the `/plan` and `/edges` endpoints over HTTP and serve the web page; map domain errors to responses | TECH-API-PLAN-001, FUNC-SURFACE-FROMPOINTS-001, UI-SCHEMA-001 |
 | web-gui | Browser page and canvas to draw or enter the outline and render the plan schema | UI-SCHEMA-001, UI-DRAW-001 |
 | plate-optimizer | Optimize plasterboard cutting from a validated polygon | FUNC-PLATE-OPTIM-001 |
@@ -50,6 +50,7 @@ applies yet._
 |-------------|-------------|-------|
 | FUNC-SURFACE-INPUT-001 | surface-validator | entry point for outline validation |
 | FUNC-SURFACE-FROMPOINTS-001 | surface-validator, api | derives edges from drawn vertices; exposed at POST /edges |
+| FUNC-FRAMING-ORIENT-001 | framing-calculator | picks the bearing axis (shorter dimension) for the montants |
 | FUNC-FRAMING-MONTANTS-001 | framing-calculator | consumes a validated polygon; produces the montant cut list |
 | FUNC-FRAMING-RAILS-001 | framing-calculator | consumes a validated polygon; produces the rail cut list |
 | FUNC-FRAMING-SECTION-001 | framing-calculator | selects the montant section from the required span |

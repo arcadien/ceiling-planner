@@ -43,7 +43,7 @@ class PlanRequest(BaseModel):
     plate_length_m: float = 2.50
     plate_width_m: float = 1.20
     min_offcut_m: float = 0.30
-    joint_mode: str = "reuse"
+    joint_mode: str = "running_bond"  # quinconce advised along a length
     double_joints: bool = False
 
 

@@ -49,7 +49,8 @@ system places montants parallel to the first edge (the bearing direction) at the
 across the perpendicular extent of the outline, plus one montant flush to each extremity. For
 each montant position it returns the interior spans of the outline measured along the bearing
 direction: a convex outline yields one length per position, while a concave outline may yield
-several separate pieces at the same position. A non-positive spacing is rejected. Boundary
+several separate pieces at the same position. Each montant carries its span endpoints along the
+bearing direction (start and end), so it is a full segment and can be drawn in any orientation. A non-positive spacing is rejected. Boundary
 positions are evaluated just inside the outline so they report the adjacent interior span. The
 default spacing is a provisional 0.60 m parameter, to be confirmed against the applicable DTU.
 An optional joint spacing forces an extra montant at every interior strip boundary (each

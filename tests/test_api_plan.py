@@ -44,6 +44,26 @@ def test_plan_reports_material_totals():
     assert totals["montant_length_m"] == pytest.approx(sum(m["length_m"] for m in data["montants"]))
     assert totals["rail_length_m"] == pytest.approx(sum(r["length_m"] for r in data["rails"]))
     assert totals["plate_count"] == data["plates"]["plate_count"]
+    assert totals["entretoise_length_m"] == pytest.approx(
+        sum(e["length_m"] for e in data["entretoises"])
+    )
+
+
+@pytest.mark.req("TECH-API-PLAN-001")
+def test_plan_reports_entretoises_for_interior_butt_joints():
+    # Given a 6 m wide room whose strip needs three plates (interior seams at 2.5 and 5.0)
+    edges = [
+        {"length_m": 6.0, "interior_angle_deg": 90.0},
+        {"length_m": 1.2, "interior_angle_deg": 90.0},
+        {"length_m": 6.0, "interior_angle_deg": 90.0},
+        {"length_m": 1.2, "interior_angle_deg": 90.0},
+    ]
+    data = client.post("/plan", json={"edges": edges}).json()
+
+    # Then interior butt joints carry entretoises spanning the strip band
+    xs = sorted(round(e["x_m"], 3) for e in data["entretoises"])
+    assert xs == pytest.approx([2.5, 5.0])
+    assert all(e["length_m"] == pytest.approx(1.2) for e in data["entretoises"])
 
 
 @pytest.mark.req("TECH-API-PLAN-001")

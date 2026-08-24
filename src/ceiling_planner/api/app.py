@@ -7,15 +7,16 @@ HTTP 400 with a machine-readable code.
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from collections.abc import Callable
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
-from ceiling_planner.framing.entretoises import compute_entretoises
-from ceiling_planner.framing.montants import compute_montants
+from ceiling_planner.framing.entretoises import Entretoise, compute_entretoises
+from ceiling_planner.framing.montants import Montant, compute_montants
+from ceiling_planner.framing.orientation import bearing_axis, transposed
 from ceiling_planner.framing.rails import compute_rails
 from ceiling_planner.framing.sections import select_section
 from ceiling_planner.geometry.surface import (
@@ -24,7 +25,7 @@ from ceiling_planner.geometry.surface import (
     edges_from_vertices,
     validate_surface,
 )
-from ceiling_planner.plates.optimizer import optimize_plates
+from ceiling_planner.plates.optimizer import PlatePiece, optimize_plates
 
 
 class EdgeIn(BaseModel):
@@ -72,21 +73,55 @@ def edges(request: PointsRequest) -> JSONResponse | dict:
     }
 
 
+_Disp = Callable[[float, float], "tuple[float, float]"]
+
+
+def _montant_out(m: Montant, disp: _Disp) -> dict:
+    x1, y1 = disp(m.x_start_m, m.offset_m)
+    x2, y2 = disp(m.x_end_m, m.offset_m)
+    return {
+        "offset_m": m.offset_m,
+        "length_m": m.length_m,
+        "doubled": m.doubled,
+        "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+    }
+
+
+def _entretoise_out(e: Entretoise, disp: _Disp) -> dict:
+    x1, y1 = disp(e.x_m, e.y_min_m)
+    x2, y2 = disp(e.x_m, e.y_max_m)
+    return {"length_m": e.length_m, "x1": x1, "y1": y1, "x2": x2, "y2": y2}
+
+
+def _piece_out(p: PlatePiece, disp: _Disp) -> dict:
+    ax1, ay1 = disp(p.x_start_m, p.y_min_m)
+    ax2, ay2 = disp(p.x_end_m, p.y_max_m)
+    return {
+        "strip_index": p.strip_index,
+        "kind": p.kind,
+        "x_start_m": min(ax1, ax2), "x_end_m": max(ax1, ax2),
+        "y_min_m": min(ay1, ay2), "y_max_m": max(ay1, ay2),
+    }
+
+
 @app.post("/plan", response_model=None)
 def plan(request: PlanRequest) -> JSONResponse | dict:
     """Validate the outline and return the full material plan, or HTTP 400 with a code."""
     edges = [Edge(e.length_m, e.interior_angle_deg) for e in request.edges]
     try:
         polygon = validate_surface(edges, closure_tolerance_m=request.closure_tolerance_m)
+        # Montants run along the shorter dimension; compute in a horizontal-bearing frame.
+        axis = bearing_axis(polygon)
+        calc = transposed(polygon) if axis == "y" else polygon
         montants = compute_montants(
-            polygon,
+            calc,
             spacing_m=request.montant_spacing_m,
             joint_spacing_m=request.plate_width_m,
             double_joints=request.double_joints,
         )
         rails = compute_rails(polygon)
         plates = optimize_plates(
-            polygon,
+            calc,
             plate_length_m=request.plate_length_m,
             plate_width_m=request.plate_width_m,
             min_offcut_m=request.min_offcut_m,
@@ -98,6 +133,10 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
         return JSONResponse(status_code=400, content={"error": str(exc)})
 
     entretoises = compute_entretoises(plates.pieces)
+
+    def disp(x: float, y: float) -> tuple[float, float]:
+        """Map calc-frame (bearing = x) coordinates back to the drawn display frame."""
+        return (y, x) if axis == "y" else (x, y)
     montant_length_m = sum(m.length_m * (2 if m.doubled else 1) for m in montants)
     rail_length_m = sum(r.length_m for r in rails)
     entretoise_length_m = sum(e.length_m for e in entretoises)
@@ -105,18 +144,16 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
     single_section = select_section(required_span_m, doubled=False)
     doubled_section = select_section(required_span_m, doubled=True)
     return {
+        "bearing": axis,
         "vertices": [[x, y] for x, y in polygon.vertices],
-        "montants": [
-            {"offset_m": m.offset_m, "length_m": m.length_m, "doubled": m.doubled}
-            for m in montants
-        ],
+        "montants": [_montant_out(m, disp) for m in montants],
         "rails": [{"length_m": r.length_m} for r in rails],
-        "entretoises": [asdict(e) for e in entretoises],
+        "entretoises": [_entretoise_out(e, disp) for e in entretoises],
         "plates": {
             "plate_count": plates.plate_count,
             "covered_length_m": plates.covered_length_m,
             "waste_length_m": plates.waste_length_m,
-            "pieces": [asdict(p) for p in plates.pieces],
+            "pieces": [_piece_out(p, disp) for p in plates.pieces],
         },
         "totals": {
             "montant_length_m": montant_length_m,

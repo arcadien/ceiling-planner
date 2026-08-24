@@ -9,8 +9,11 @@
 **Dependencies:** FUNC-SURFACE-INPUT-001, FUNC-FRAMING-MONTANTS-001, FUNC-FRAMING-RAILS-001, FUNC-PLATE-OPTIM-001
 **Description:** The system exposes an HTTP `POST /plan` endpoint. The request body carries the
 outline edges (length and interior angle) and optional parameters (closure tolerance, montant
-spacing, plate dimensions, minimum offcut, joint mode, joint doubling). Montants are always
-forced at the plate joints (plate width). On a valid outline it returns HTTP 200 with the
+spacing, plate dimensions, minimum offcut, joint mode, joint doubling). The framing is computed
+with the montants running along the shorter dimension (bearing axis); the response reports that
+`bearing` axis and returns the montants and entretoises as segments in the drawn (display)
+coordinates so they can be drawn in any orientation. Montants are always forced at the plate
+joints (plate width). On a valid outline it returns HTTP 200 with the
 reconstructed vertices, the montant cut list (each montant flagged if doubled), the rail cut
 list, the entretoise list (cross-braces under interior plate butt joints), the plate layout
 (pieces plus summary), a `totals` block giving the total montant length (counting doubled

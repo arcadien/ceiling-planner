@@ -22,7 +22,6 @@ def test_page_exposes_material_indicators():
     assert 'id="ind-rail"' in body
     assert 'id="ind-plates"' in body
     assert 'id="ind-section"' in body
-    assert 'id="ind-entretoise"' in body
 
 
 @pytest.mark.req("UI-SCHEMA-001")

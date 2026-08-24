@@ -50,8 +50,8 @@ def test_plan_reports_material_totals():
 
 
 @pytest.mark.req("TECH-API-PLAN-001")
-def test_plan_reports_entretoises_for_interior_butt_joints():
-    # Given a 3 m by 4 m room (bearing stays on x; 4 aligned strips each seamed at x=2.5)
+def test_butt_joints_are_backed_by_forced_montants_not_entretoises():
+    # Given a 3 m by 4 m room (bearing x; plates run along the 4 m length, aligned seam at 2.5)
     edges = [
         {"length_m": 3.0, "interior_angle_deg": 90.0},
         {"length_m": 4.0, "interior_angle_deg": 90.0},
@@ -60,13 +60,10 @@ def test_plan_reports_entretoises_for_interior_butt_joints():
     ]
     data = client.post("/plan", json={"edges": edges, "joint_mode": "aligned"}).json()
 
-    # Then the plates run along the 4 m length; each strip's butt joint at 2.5 m carries an
-    # entretoise across the width (a horizontal segment at y = 2.5 in display coordinates)
+    # Then no entretoises are emitted; instead a montant is forced under the 2.5 m butt joint
     assert data["bearing"] == "x"
-    assert len(data["entretoises"]) == 3
-    for e in data["entretoises"]:
-        assert e["y1"] == pytest.approx(2.5)
-        assert e["y2"] == pytest.approx(2.5)
+    assert data["entretoises"] == []
+    assert any(m["offset_m"] == pytest.approx(2.5) for m in data["montants"])
 
 
 @pytest.mark.req("TECH-API-PLAN-001")
@@ -91,10 +88,15 @@ def test_wide_room_orients_montants_across_the_short_side():
 
 @pytest.mark.req("TECH-API-PLAN-001")
 def test_optional_parameters_are_honored():
-    # Given a coarse montant spacing and a plate wider than the room (no interior joints)
+    # Given a coarse montant spacing and a plate longer than the room (a single plate, no joints)
     response = client.post(
         "/plan",
-        json={"edges": SQUARE_EDGES, "montant_spacing_m": 4.0, "plate_width_m": 5.0},
+        json={
+            "edges": SQUARE_EDGES,
+            "montant_spacing_m": 4.0,
+            "plate_length_m": 5.0,
+            "joint_mode": "aligned",
+        },
     )
 
     # Then the montants follow that spacing (extremities only, no forced joints)
@@ -105,14 +107,14 @@ def test_optional_parameters_are_honored():
 
 @pytest.mark.req("TECH-API-PLAN-001")
 def test_montants_are_forced_at_plate_joints():
-    # Given a plan with a coarse spacing but the default 1.20 m plate width
+    # Given a coarse spacing and aligned joints (plate seam at 2.5 m along the length)
     response = client.post(
-        "/plan", json={"edges": SQUARE_EDGES, "montant_spacing_m": 4.0}
+        "/plan", json={"edges": SQUARE_EDGES, "montant_spacing_m": 4.0, "joint_mode": "aligned"}
     )
 
-    # Then montants are forced at each plate joint (1.2, 2.4, 3.6) on top of the extremities
+    # Then a montant is forced at the 2.5 m butt joint on top of the extremities
     offsets = sorted(m["offset_m"] for m in response.json()["montants"])
-    assert offsets == pytest.approx([0.0, 1.2, 2.4, 3.6, 4.0])
+    assert offsets == pytest.approx([0.0, 2.5, 4.0])
 
 
 @pytest.mark.req("TECH-API-PLAN-001")

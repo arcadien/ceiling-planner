@@ -111,11 +111,11 @@ def test_montant_carries_its_span_endpoints():
 
 
 @pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
-def test_joint_spacing_forces_montants_at_strip_boundaries():
-    # Given a 1 m entraxe that does not divide the 1.20 m joint pitch
-    montants = compute_montants(SQUARE, spacing_m=1.0, joint_spacing_m=1.2)
+def test_forced_offsets_add_montants_at_plate_joints():
+    # Given forced offsets (plate butt joints) that miss the 1 m entraxe grid
+    montants = compute_montants(SQUARE, spacing_m=1.0, forced_offsets=[1.2, 2.4, 3.6])
 
-    # Then montants are forced at each interior strip boundary as well as the entraxe grid
+    # Then montants are forced at those joints as well as the entraxe grid
     offsets = sorted(round(m.offset_m, 6) for m in montants)
     assert offsets == pytest.approx([0.0, 1.0, 1.2, 2.0, 2.4, 3.0, 3.6, 4.0])
 
@@ -123,9 +123,11 @@ def test_joint_spacing_forces_montants_at_strip_boundaries():
 @pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
 def test_joint_montants_can_be_doubled():
     # Given joint doubling enabled
-    montants = compute_montants(SQUARE, spacing_m=1.0, joint_spacing_m=1.2, double_joints=True)
+    montants = compute_montants(
+        SQUARE, spacing_m=1.0, forced_offsets=[1.2, 2.4, 3.6], double_joints=True
+    )
 
-    # Then only the joint-boundary montants are marked doubled
+    # Then only the forced joint montants are marked doubled
     doubled = sorted(round(m.offset_m, 6) for m in montants if m.doubled)
     plain = sorted(round(m.offset_m, 6) for m in montants if not m.doubled)
     assert doubled == pytest.approx([1.2, 2.4, 3.6])
@@ -133,8 +135,8 @@ def test_joint_montants_can_be_doubled():
 
 
 @pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
-def test_no_joint_spacing_keeps_plain_entraxe_grid():
-    # Given no joint spacing
+def test_no_forced_offsets_keeps_plain_entraxe_grid():
+    # Given no forced offsets
     montants = compute_montants(SQUARE, spacing_m=1.0)
 
     # Then only the entraxe grid and extremities are placed, none doubled

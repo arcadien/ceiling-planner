@@ -39,16 +39,16 @@ class Montant:
 def compute_montants(
     polygon: Polygon,
     spacing_m: float = _DEFAULT_SPACING_M,
-    joint_spacing_m: float | None = None,
+    forced_offsets: list[float] | None = None,
     double_joints: bool = False,
 ) -> list[Montant]:
     """Return the montant cut list for ``polygon`` at the given spacing (entraxe).
 
-    Montants are placed at ``y_min``, then every ``spacing_m``, plus one flush to ``y_max``. When
-    ``joint_spacing_m`` is given, an extra montant is forced at every interior strip boundary so a
-    montant always backs a plasterboard joint; with ``double_joints`` those joint montants are
-    doubled. Each position is evaluated just inside the outline so boundary montants report the
-    adjacent interior span. A non-positive spacing raises :class:`ValueError`.
+    Montants are placed at ``y_min``, then every ``spacing_m``, plus one flush to ``y_max``. Each
+    offset in ``forced_offsets`` (the plate butt-joint positions) adds a montant so a montant
+    always backs a plasterboard joint; with ``double_joints`` those joint montants are doubled.
+    Each position is evaluated just inside the outline so boundary montants report the adjacent
+    interior span. A non-positive spacing raises :class:`ValueError`.
     """
     if spacing_m <= 0:
         raise ValueError("spacing_m must be strictly positive")
@@ -56,7 +56,7 @@ def compute_montants(
     ys = [y for _, y in polygon.vertices]
     y_min, y_max = min(ys), max(ys)
 
-    joint_offsets = _joint_offsets(y_min, y_max, joint_spacing_m)
+    joint_offsets = [o for o in (forced_offsets or []) if y_min < o < y_max]
     offsets = _merge_offsets(_montant_offsets(y_min, y_max, spacing_m), joint_offsets)
 
     montants: list[Montant] = []
@@ -89,18 +89,6 @@ def _montant_offsets(y_min: float, y_max: float, spacing_m: float) -> list[float
         offsets.append(y_min + step * spacing_m)
         step += 1
     offsets.append(y_max)
-    return offsets
-
-
-def _joint_offsets(y_min: float, y_max: float, joint_spacing_m: float | None) -> list[float]:
-    """Interior strip-boundary positions (multiples of ``joint_spacing_m`` from ``y_min``)."""
-    if joint_spacing_m is None or joint_spacing_m <= 0:
-        return []
-    offsets: list[float] = []
-    step = 1
-    while y_min + step * joint_spacing_m < y_max - _BOUNDARY_INSET_M:
-        offsets.append(y_min + step * joint_spacing_m)
-        step += 1
     return offsets
 
 

@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
-from ceiling_planner.framing.entretoises import Entretoise, compute_entretoises
+from ceiling_planner.framing.entretoises import compute_entretoises
 from ceiling_planner.framing.montants import Montant, compute_montants
 from ceiling_planner.framing.orientation import bearing_axis, transposed
 from ceiling_planner.framing.rails import compute_rails
@@ -87,12 +87,6 @@ def _montant_out(m: Montant, disp: _Disp) -> dict:
     }
 
 
-def _entretoise_out(e: Entretoise, disp: _Disp) -> dict:
-    x1, y1 = disp(e.x_m, e.y_min_m)
-    x2, y2 = disp(e.x_m, e.y_max_m)
-    return {"length_m": e.length_m, "x1": x1, "y1": y1, "x2": x2, "y2": y2}
-
-
 def _piece_out(p: PlatePiece, disp: _Disp) -> dict:
     ax1, ay1 = disp(p.x_start_m, p.y_min_m)
     ax2, ay2 = disp(p.x_end_m, p.y_max_m)
@@ -115,12 +109,6 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
         axis = bearing_axis(polygon)
         calc = transposed(polygon) if axis == "y" else polygon
         plate_calc = transposed(calc)
-        montants = compute_montants(
-            calc,
-            spacing_m=request.montant_spacing_m,
-            joint_spacing_m=request.plate_width_m,
-            double_joints=request.double_joints,
-        )
         rails = compute_rails(polygon)
         plates = optimize_plates(
             plate_calc,
@@ -129,12 +117,18 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
             min_offcut_m=request.min_offcut_m,
             joint_mode=request.joint_mode,
         )
+        # Plate butt joints run parallel to the montants, so a montant is forced under each one.
+        butt_joint_offsets = sorted({round(e.x_m, 6) for e in compute_entretoises(plates.pieces)})
+        montants = compute_montants(
+            calc,
+            spacing_m=request.montant_spacing_m,
+            forced_offsets=butt_joint_offsets,
+            double_joints=request.double_joints,
+        )
     except SurfaceError as exc:
         return JSONResponse(status_code=400, content={"error": exc.code})
     except ValueError as exc:
         return JSONResponse(status_code=400, content={"error": str(exc)})
-
-    entretoises = compute_entretoises(plates.pieces)
 
     def disp(x: float, y: float) -> tuple[float, float]:
         """Map montant calc-frame (bearing = x) coordinates back to the drawn display frame."""
@@ -146,7 +140,6 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
 
     montant_length_m = sum(m.length_m * (2 if m.doubled else 1) for m in montants)
     rail_length_m = sum(r.length_m for r in rails)
-    entretoise_length_m = sum(e.length_m for e in entretoises)
     required_span_m = max((m.length_m for m in montants), default=0.0)
     single_section = select_section(required_span_m, doubled=False)
     doubled_section = select_section(required_span_m, doubled=True)
@@ -155,7 +148,7 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
         "vertices": [[x, y] for x, y in polygon.vertices],
         "montants": [_montant_out(m, disp) for m in montants],
         "rails": [{"length_m": r.length_m} for r in rails],
-        "entretoises": [_entretoise_out(e, disp_plate) for e in entretoises],
+        "entretoises": [],  # superseded: butt joints are backed by forced montants
         "plates": {
             "plate_count": plates.plate_count,
             "covered_length_m": plates.covered_length_m,
@@ -165,7 +158,7 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
         "totals": {
             "montant_length_m": montant_length_m,
             "rail_length_m": rail_length_m,
-            "entretoise_length_m": entretoise_length_m,
+            "entretoise_length_m": 0.0,
             "plate_count": plates.plate_count,
         },
         "section": {

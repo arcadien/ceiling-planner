@@ -97,6 +97,20 @@ def test_montant_is_a_value_object():
 
 
 @pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
+def test_montant_carries_its_span_endpoints():
+    # Given the montants of the concave U-shape at a position with two pieces
+    montants = compute_montants(U_SHAPE, spacing_m=1.0)
+
+    # Then each montant is a segment whose endpoints bound its length
+    for m in montants:
+        assert m.x_end_m - m.x_start_m == pytest.approx(m.length_m)
+
+    # And the notched row at offset 3.0 yields the two interior intervals [0,1] and [3,4]
+    notched = sorted((m.x_start_m, m.x_end_m) for m in montants if m.offset_m == pytest.approx(3.0))
+    assert notched == pytest.approx([(0.0, 1.0), (3.0, 4.0)])
+
+
+@pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
 def test_joint_spacing_forces_montants_at_strip_boundaries():
     # Given a 1 m entraxe that does not divide the 1.20 m joint pitch
     montants = compute_montants(SQUARE, spacing_m=1.0, joint_spacing_m=1.2)

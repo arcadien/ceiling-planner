@@ -33,3 +33,12 @@ segment being drawn to the nearest 45-degree direction (keeping its length). The
 magnetic to existing vertices: it snaps onto a nearby vertex, and onto the first vertex to help
 close the outline — clicking while snapped to the first vertex closes the sketch. The user can
 refine the exact lengths and angles afterward, and can clear the sketch to start over.
+
+### UI-RECT-001
+**Title:** Rectangle shortcut for outline entry
+**Status:** validated
+**Dependencies:** UI-SCHEMA-001
+**Description:** The page offers a rectangle shortcut: the user enters a width and a height in
+meters and, on applying it, the edge list is filled with the four right-angle edges of that
+rectangle (width, height, width, height, each at 90 degrees) and the plan is computed. Non-
+positive dimensions are ignored.

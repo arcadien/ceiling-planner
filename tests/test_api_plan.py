@@ -51,19 +51,41 @@ def test_plan_reports_material_totals():
 
 @pytest.mark.req("TECH-API-PLAN-001")
 def test_plan_reports_entretoises_for_interior_butt_joints():
-    # Given a 6 m wide room whose strip needs three plates (interior seams at 2.5 and 5.0)
+    # Given a 3 m by 4 m room (bearing stays on x; 4 aligned strips each seamed at x=2.5)
+    edges = [
+        {"length_m": 3.0, "interior_angle_deg": 90.0},
+        {"length_m": 4.0, "interior_angle_deg": 90.0},
+        {"length_m": 3.0, "interior_angle_deg": 90.0},
+        {"length_m": 4.0, "interior_angle_deg": 90.0},
+    ]
+    data = client.post("/plan", json={"edges": edges, "joint_mode": "aligned"}).json()
+
+    # Then each strip's single interior butt joint carries a vertical entretoise at x = 2.5
+    assert data["bearing"] == "x"
+    assert len(data["entretoises"]) == 4
+    for e in data["entretoises"]:
+        assert e["x1"] == pytest.approx(2.5)
+        assert e["x2"] == pytest.approx(2.5)
+
+
+@pytest.mark.req("TECH-API-PLAN-001")
+def test_wide_room_orients_montants_across_the_short_side():
+    # Given a corridor wider than tall
     edges = [
         {"length_m": 6.0, "interior_angle_deg": 90.0},
-        {"length_m": 1.2, "interior_angle_deg": 90.0},
+        {"length_m": 2.0, "interior_angle_deg": 90.0},
         {"length_m": 6.0, "interior_angle_deg": 90.0},
-        {"length_m": 1.2, "interior_angle_deg": 90.0},
+        {"length_m": 2.0, "interior_angle_deg": 90.0},
     ]
     data = client.post("/plan", json={"edges": edges}).json()
 
-    # Then interior butt joints carry entretoises spanning the strip band
-    xs = sorted(round(e["x_m"], 3) for e in data["entretoises"])
-    assert xs == pytest.approx([2.5, 5.0])
-    assert all(e["length_m"] == pytest.approx(1.2) for e in data["entretoises"])
+    # Then montants run across the short 2 m width, not the 6 m length
+    assert data["bearing"] == "y"
+    assert data["section"]["span_m"] == pytest.approx(2.0)
+    # Each montant segment spans the short (y) direction: constant x, 2 m tall
+    for m in data["montants"]:
+        assert m["x1"] == pytest.approx(m["x2"])
+        assert abs(m["y2"] - m["y1"]) == pytest.approx(2.0)
 
 
 @pytest.mark.req("TECH-API-PLAN-001")

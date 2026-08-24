@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ceiling_planner.geometry.scanline import interior_spans
+from ceiling_planner.geometry.scanline import interior_intervals
 from ceiling_planner.geometry.surface import Polygon
 
 _DEFAULT_SPACING_M = 0.60
@@ -32,6 +32,8 @@ class Montant:
     offset_m: float
     length_m: float
     doubled: bool = False
+    x_start_m: float = 0.0
+    x_end_m: float = 0.0
 
 
 def compute_montants(
@@ -62,8 +64,16 @@ def compute_montants(
         probe = min(max(offset, y_min + _BOUNDARY_INSET_M), y_max - _BOUNDARY_INSET_M)
         is_joint = _is_close_to_any(offset, joint_offsets)
         doubled = bool(double_joints and is_joint)
-        for length in interior_spans(polygon, probe):
-            montants.append(Montant(offset_m=offset, length_m=length, doubled=doubled))
+        for x_start, x_end in interior_intervals(polygon, probe):
+            montants.append(
+                Montant(
+                    offset_m=offset,
+                    length_m=x_end - x_start,
+                    doubled=doubled,
+                    x_start_m=x_start,
+                    x_end_m=x_end,
+                )
+            )
     return montants
 
 

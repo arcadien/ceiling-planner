@@ -55,6 +55,13 @@
     <button id="finish" class="icon" hidden>finish</button>
     <button id="clear" class="icon" hidden>clear</button>
   </div>
+  <div class="row" style="gap:6px;align-items:center">
+    <span style="font-size:12px;opacity:.7">Rectangle:</span>
+    <input id="rect-width" type="number" step="0.01" placeholder="W" style="width:60px;padding:4px 6px;font:inherit;border:1px solid #8886;border-radius:5px;background:transparent;color:inherit">
+    <span>×</span>
+    <input id="rect-height" type="number" step="0.01" placeholder="H" style="width:60px;padding:4px 6px;font:inherit;border:1px solid #8886;border-radius:5px;background:transparent;color:inherit">
+    <button id="rect-apply" class="icon">set</button>
+  </div>
   <p id="drawhint" style="font-size:12px;opacity:.7;margin:0" hidden>Click points on the grid (1&nbsp;m squares). Hold Shift (or Ctrl) to snap to 45°; vertices are magnetic — click the first one to close.</p>
   <p id="draw-length" style="font-size:13px;font-weight:600;margin:4px 0" hidden></p>
 
@@ -432,6 +439,15 @@ function resetAll() {
     .forEach(id => (document.getElementById(id).textContent = "–"));
   document.getElementById("error").textContent = "";
 }
+
+document.getElementById("rect-apply").onclick = () => {
+  const w = parseFloat(document.getElementById("rect-width").value);
+  const h = parseFloat(document.getElementById("rect-height").value);
+  if (!(w > 0) || !(h > 0)) { document.getElementById("error").textContent = "Enter positive width and height"; return; }
+  edgesBody.innerHTML = "";
+  [[w, 90], [h, 90], [w, 90], [h, 90]].forEach(e => addEdge(e[0], e[1]));
+  compute();
+};
 
 document.getElementById("reset").onclick = resetAll;
 document.getElementById("compute").onclick = compute;

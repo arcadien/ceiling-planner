@@ -88,6 +88,7 @@
     <div class="tile"><div class="tile-val" id="ind-rail">–</div><div class="tile-lbl">rail total (m)</div></div>
     <div class="tile"><div class="tile-val" id="ind-plates">–</div><div class="tile-lbl">plates</div></div>
     <div class="tile"><div class="tile-val" id="ind-waste">–</div><div class="tile-lbl">plate waste (m)</div></div>
+    <div class="tile"><div class="tile-val" id="ind-entretoise">–</div><div class="tile-lbl">entretoise total (m)</div></div>
     <div class="tile"><div class="tile-val" id="ind-section" style="font-size:16px">–</div><div class="tile-lbl">montant section</div></div>
   </div>
   <div class="legend">
@@ -96,6 +97,7 @@
     <span><span class="swatch" style="background:#8fd39a"></span>reused offcut</span>
     <span><span class="swatch" style="background:#555"></span>rail</span>
     <span><span class="swatch" style="background:#aaa"></span>montant</span>
+    <span><span class="swatch" style="background:#8e44ad"></span>entretoise</span>
     <span class="toggles">
       <label><input type="checkbox" id="toggle-montants" checked> montants</label>
       <label><input type="checkbox" id="toggle-rails" checked> rails</label>
@@ -240,6 +242,13 @@ function draw(data) {
     }
   }
 
+  // Entretoises: cross-braces along interior plate butt joints (perpendicular to montants).
+  ctx.strokeStyle = "#8e44ad";
+  ctx.lineWidth = 3;
+  for (const e of (data.entretoises || [])) {
+    ctx.beginPath(); ctx.moveTo(px(e.x_m), py(e.y_min_m)); ctx.lineTo(px(e.x_m), py(e.y_max_m)); ctx.stroke();
+  }
+
   // Outline.
   ctx.strokeStyle = "#111";
   ctx.lineWidth = 2;
@@ -270,6 +279,7 @@ function draw(data) {
   const t = data.totals;
   document.getElementById("ind-montant").textContent = t.montant_length_m.toFixed(2);
   document.getElementById("ind-rail").textContent = t.rail_length_m.toFixed(2);
+  document.getElementById("ind-entretoise").textContent = t.entretoise_length_m.toFixed(2);
   document.getElementById("ind-plates").textContent = t.plate_count;
   document.getElementById("ind-waste").textContent = data.plates.waste_length_m.toFixed(2);
   const s = data.section;
@@ -425,7 +435,7 @@ function resetAll() {
   document.getElementById("toggle-rails").checked = true;
   const ctx = sketchCanvas.getContext("2d");
   ctx.clearRect(0, 0, sketchCanvas.width, sketchCanvas.height);
-  ["ind-montant", "ind-rail", "ind-plates", "ind-waste", "ind-section"]
+  ["ind-montant", "ind-rail", "ind-entretoise", "ind-plates", "ind-waste", "ind-section"]
     .forEach(id => (document.getElementById(id).textContent = "–"));
   document.getElementById("error").textContent = "";
 }

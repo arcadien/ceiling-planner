@@ -12,7 +12,10 @@ Given a validated polygon, the system chooses the bearing axis as the shorter of
 bounding-box dimensions: `x` when the x-extent is at most the y-extent, otherwise `y`. It also
 provides the transposed polygon (x and y swapped), so framing computed with a horizontal bearing
 maps to montants running along the chosen axis. As in a corridor, the rails follow the length
-while the montants run across the shorter width.
+while the montants run across the shorter width. The plates are laid perpendicular to the
+montants — their length runs along the longer dimension — so they are staggered (quinconce)
+along that length rather than banded across it; the plate frame is therefore the transpose of the
+montant frame.
 
 ### FUNC-SURFACE-INPUT-001
 **Title:** Define and validate the ceiling surface as an ordered sequence of edges

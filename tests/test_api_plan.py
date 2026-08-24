@@ -60,12 +60,13 @@ def test_plan_reports_entretoises_for_interior_butt_joints():
     ]
     data = client.post("/plan", json={"edges": edges, "joint_mode": "aligned"}).json()
 
-    # Then each strip's single interior butt joint carries a vertical entretoise at x = 2.5
+    # Then the plates run along the 4 m length; each strip's butt joint at 2.5 m carries an
+    # entretoise across the width (a horizontal segment at y = 2.5 in display coordinates)
     assert data["bearing"] == "x"
-    assert len(data["entretoises"]) == 4
+    assert len(data["entretoises"]) == 3
     for e in data["entretoises"]:
-        assert e["x1"] == pytest.approx(2.5)
-        assert e["x2"] == pytest.approx(2.5)
+        assert e["y1"] == pytest.approx(2.5)
+        assert e["y2"] == pytest.approx(2.5)
 
 
 @pytest.mark.req("TECH-API-PLAN-001")

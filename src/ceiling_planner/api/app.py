@@ -110,9 +110,11 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
     edges = [Edge(e.length_m, e.interior_angle_deg) for e in request.edges]
     try:
         polygon = validate_surface(edges, closure_tolerance_m=request.closure_tolerance_m)
-        # Montants run along the shorter dimension; compute in a horizontal-bearing frame.
+        # Montants run along the shorter dimension; plates run perpendicular (along the longer
+        # dimension) so they stagger along the length. The two frames are transposes.
         axis = bearing_axis(polygon)
         calc = transposed(polygon) if axis == "y" else polygon
+        plate_calc = transposed(calc)
         montants = compute_montants(
             calc,
             spacing_m=request.montant_spacing_m,
@@ -121,7 +123,7 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
         )
         rails = compute_rails(polygon)
         plates = optimize_plates(
-            calc,
+            plate_calc,
             plate_length_m=request.plate_length_m,
             plate_width_m=request.plate_width_m,
             min_offcut_m=request.min_offcut_m,
@@ -135,8 +137,13 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
     entretoises = compute_entretoises(plates.pieces)
 
     def disp(x: float, y: float) -> tuple[float, float]:
-        """Map calc-frame (bearing = x) coordinates back to the drawn display frame."""
+        """Map montant calc-frame (bearing = x) coordinates back to the drawn display frame."""
         return (y, x) if axis == "y" else (x, y)
+
+    def disp_plate(x: float, y: float) -> tuple[float, float]:
+        """Map plate-frame coordinates (transpose of the montant frame) back to display."""
+        return (y, x) if axis == "x" else (x, y)
+
     montant_length_m = sum(m.length_m * (2 if m.doubled else 1) for m in montants)
     rail_length_m = sum(r.length_m for r in rails)
     entretoise_length_m = sum(e.length_m for e in entretoises)
@@ -148,12 +155,12 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
         "vertices": [[x, y] for x, y in polygon.vertices],
         "montants": [_montant_out(m, disp) for m in montants],
         "rails": [{"length_m": r.length_m} for r in rails],
-        "entretoises": [_entretoise_out(e, disp) for e in entretoises],
+        "entretoises": [_entretoise_out(e, disp_plate) for e in entretoises],
         "plates": {
             "plate_count": plates.plate_count,
             "covered_length_m": plates.covered_length_m,
             "waste_length_m": plates.waste_length_m,
-            "pieces": [_piece_out(p, disp) for p in plates.pieces],
+            "pieces": [_piece_out(p, disp_plate) for p in plates.pieces],
         },
         "totals": {
             "montant_length_m": montant_length_m,

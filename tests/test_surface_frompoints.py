@@ -67,6 +67,19 @@ def test_derived_edges_round_trip_through_validation():
 
 
 @pytest.mark.req("FUNC-SURFACE-FROMPOINTS-001")
+def test_coincident_vertices_are_dropped():
+    # Given a square with a duplicated corner (e.g. a snap landing on an existing vertex)
+    with_dup = [(0.0, 0.0), (4.0, 0.0), (4.0, 4.0), (4.0, 4.0), (0.0, 4.0)]
+
+    # When the edge sequence is derived
+    edges = edges_from_vertices(with_dup)
+
+    # Then the duplicate is dropped: four clean edges, no zero-length edge
+    assert len(edges) == 4
+    assert all(e.length_m > 0 for e in edges)
+
+
+@pytest.mark.req("FUNC-SURFACE-FROMPOINTS-001")
 def test_fewer_than_three_vertices_is_rejected():
     # Given only two vertices
     # When the edge sequence is derived

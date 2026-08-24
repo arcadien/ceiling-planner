@@ -51,10 +51,10 @@ def edges_from_vertices(vertices: list[Point]) -> list[Edge]:
     starts it. Clockwise input is normalized to counter-clockwise so convex corners yield angles
     below 180 degrees. The result round-trips through :func:`validate_surface`.
     """
-    if len(vertices) < _MIN_EDGES:
+    points = _drop_coincident(vertices)
+    if len(points) < _MIN_EDGES:
         raise ValueError("too_few_vertices")
 
-    points = list(vertices)
     if _signed_area(points) < 0:
         points.reverse()
 
@@ -71,6 +71,22 @@ def edges_from_vertices(vertices: list[Point]) -> list[Edge]:
         interior = (180.0 - turn) % 360.0
         edges.append(Edge(length_m=length, interior_angle_deg=interior))
     return edges
+
+
+def _drop_coincident(vertices: list[Point], epsilon_m: float = 1e-4) -> list[Point]:
+    """Drop consecutive (and wrap-around) vertices closer than ``epsilon_m`` — they form no edge.
+
+    Drawn or snapped points can land on top of one another (e.g. the magnetic snap onto an
+    existing vertex), which would otherwise produce a zero-length edge and a ``non_positive_length``
+    rejection.
+    """
+    kept: list[Point] = []
+    for p in vertices:
+        if not kept or math.dist(p, kept[-1]) > epsilon_m:
+            kept.append(p)
+    if len(kept) >= 2 and math.dist(kept[0], kept[-1]) <= epsilon_m:
+        kept.pop()
+    return kept
 
 
 def _signed_area(points: list[Point]) -> float:

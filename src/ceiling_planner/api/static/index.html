@@ -404,6 +404,8 @@ sketchCanvas.addEventListener("click", e => {
   if (!drawing) return;
   const s = snapPoint(eventToMeters(e), angleSnapHeld(e));
   if (s.vertexIndex === 0 && sketch.length >= 3) { finishDraw(); return; }  // click first vertex to close
+  const last = sketch[sketch.length - 1];
+  if (last && Math.hypot(s.pt[0] - last[0], s.pt[1] - last[1]) < 1e-4) return;  // ignore duplicate
   sketch.push(s.pt); cursor = null; snapVertex = -1; drawSketch();
 });
 sketchCanvas.addEventListener("mousemove", e => {

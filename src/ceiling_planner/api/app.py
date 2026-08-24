@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
+from ceiling_planner.framing.entretoises import compute_entretoises
 from ceiling_planner.framing.montants import compute_montants
 from ceiling_planner.framing.rails import compute_rails
 from ceiling_planner.framing.sections import select_section
@@ -96,8 +97,10 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
     except ValueError as exc:
         return JSONResponse(status_code=400, content={"error": str(exc)})
 
+    entretoises = compute_entretoises(plates.pieces)
     montant_length_m = sum(m.length_m * (2 if m.doubled else 1) for m in montants)
     rail_length_m = sum(r.length_m for r in rails)
+    entretoise_length_m = sum(e.length_m for e in entretoises)
     required_span_m = max((m.length_m for m in montants), default=0.0)
     single_section = select_section(required_span_m, doubled=False)
     doubled_section = select_section(required_span_m, doubled=True)
@@ -108,6 +111,7 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
             for m in montants
         ],
         "rails": [{"length_m": r.length_m} for r in rails],
+        "entretoises": [asdict(e) for e in entretoises],
         "plates": {
             "plate_count": plates.plate_count,
             "covered_length_m": plates.covered_length_m,
@@ -117,6 +121,7 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
         "totals": {
             "montant_length_m": montant_length_m,
             "rail_length_m": rail_length_m,
+            "entretoise_length_m": entretoise_length_m,
             "plate_count": plates.plate_count,
         },
         "section": {

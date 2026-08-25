@@ -135,6 +135,27 @@ def test_joint_montants_can_be_doubled():
 
 
 @pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
+def test_forced_joint_wins_over_a_too_close_entraxe_montant():
+    # Given a forced joint 0.05 m from an entraxe montant (below the 0.10 m clearance)
+    montants = compute_montants(SQUARE, spacing_m=1.0, forced_offsets=[1.05])
+
+    # Then the entraxe montant at 1.0 is dropped and the joint at 1.05 is kept
+    offsets = sorted(round(m.offset_m, 3) for m in montants)
+    assert offsets == pytest.approx([0.0, 1.05, 2.0, 3.0, 4.0])
+
+
+@pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
+def test_montants_never_sit_closer_than_the_clearance():
+    # Given a dense set of forced joints near the entraxe grid
+    montants = compute_montants(SQUARE, spacing_m=0.6, forced_offsets=[1.25, 2.5, 3.75])
+
+    # Then no two montants are closer than the 0.10 m clearance
+    offsets = sorted(m.offset_m for m in montants)
+    gaps = [offsets[i + 1] - offsets[i] for i in range(len(offsets) - 1)]
+    assert min(gaps) >= 0.10 - 1e-9
+
+
+@pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
 def test_no_forced_offsets_keeps_plain_entraxe_grid():
     # Given no forced offsets
     montants = compute_montants(SQUARE, spacing_m=1.0)

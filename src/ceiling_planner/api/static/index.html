@@ -224,7 +224,8 @@ function draw(data) {
     const x = px(p.x_start_m), y = py(p.y_max_m);
     ctx.fillRect(x, y, (p.x_end_m - p.x_start_m) * scale, (p.y_max_m - p.y_min_m) * scale);
     ctx.globalAlpha = 1;
-    ctx.strokeStyle = "#0003";
+    ctx.strokeStyle = "#1a9d4f";  // green 1px outline around each plate piece
+    ctx.lineWidth = 1;
     ctx.strokeRect(x, y, (p.x_end_m - p.x_start_m) * scale, (p.y_max_m - p.y_min_m) * scale);
   }
 
@@ -518,7 +519,7 @@ function buildSVG(data) {
   for (const p of data.plates.pieces) {
     const x = px(p.x_start_m), y = py(p.y_max_m);
     const w = (p.x_end_m - p.x_start_m) * scale, h = (p.y_max_m - p.y_min_m) * scale;
-    out.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${KIND_COLORS[p.kind] || "#ccc"}" fill-opacity="0.75" stroke="#00000033"/>`);
+    out.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${KIND_COLORS[p.kind] || "#ccc"}" fill-opacity="0.75" stroke="#1a9d4f" stroke-width="1"/>`);
   }
   if (document.getElementById("toggle-montants").checked) {
     for (const mm of data.montants) {

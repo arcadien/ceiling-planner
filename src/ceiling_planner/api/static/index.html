@@ -107,6 +107,8 @@
       <label><input type="checkbox" id="toggle-montants" checked> montants</label>
       <label><input type="checkbox" id="toggle-rails" checked> rails</label>
       <button id="fit" class="icon" title="Recenter / fit">⤢ fit</button>
+      <button id="export-png" class="icon">PNG</button>
+      <button id="export-svg" class="icon">SVG</button>
     </span>
   </div>
   <canvas id="schema" width="900" height="620"></canvas>
@@ -494,6 +496,71 @@ window.addEventListener("mouseup", () => { panning = false; });
 
 function fitView() { view.zoom = 1; view.panX = 0; view.panY = 0; redraw(); }
 document.getElementById("fit").onclick = fitView;
+
+// ---- Export: PNG (from the fitted canvas) and SVG (rebuilt from the plan data) ----
+function downloadBlob(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function buildSVG(data) {
+  const W = 900, H = 620, mg = 54;
+  const v = data.vertices;
+  const xs = v.map(p => p[0]), ys = v.map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const scale = Math.min((W - 2 * mg) / (maxX - minX || 1), (H - 2 * mg) / (maxY - minY || 1));
+  const px = x => mg + (x - minX) * scale, py = y => H - mg - (y - minY) * scale;
+  const out = [`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`];
+  out.push(`<rect width="${W}" height="${H}" fill="#ffffff"/>`);
+  for (const p of data.plates.pieces) {
+    const x = px(p.x_start_m), y = py(p.y_max_m);
+    const w = (p.x_end_m - p.x_start_m) * scale, h = (p.y_max_m - p.y_min_m) * scale;
+    out.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${KIND_COLORS[p.kind] || "#ccc"}" fill-opacity="0.75" stroke="#00000033"/>`);
+  }
+  if (document.getElementById("toggle-montants").checked) {
+    for (const mm of data.montants) {
+      out.push(`<line x1="${px(mm.x1).toFixed(1)}" y1="${py(mm.y1).toFixed(1)}" x2="${px(mm.x2).toFixed(1)}" y2="${py(mm.y2).toFixed(1)}" stroke="${mm.doubled ? "#c0392b" : "#999"}" stroke-width="1"/>`);
+    }
+  }
+  if (document.getElementById("toggle-rails").checked) {
+    for (let i = 0; i < v.length; i++) {
+      const a = v[i], b = v[(i + 1) % v.length];
+      out.push(`<line x1="${px(a[0]).toFixed(1)}" y1="${py(a[1]).toFixed(1)}" x2="${px(b[0]).toFixed(1)}" y2="${py(b[1]).toFixed(1)}" stroke="#444" stroke-width="4"/>`);
+    }
+  }
+  const pts = v.map(p => `${px(p[0]).toFixed(1)},${py(p[1]).toFixed(1)}`).join(" ");
+  out.push(`<polygon points="${pts}" fill="none" stroke="#111" stroke-width="2"/>`);
+  const ccw = signedArea(v) >= 0;
+  for (let i = 0; i < v.length; i++) {
+    const a = v[i], b = v[(i + 1) % v.length];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (len < 1e-9) continue;
+    let nx = (b[1] - a[1]) / len, ny = -(b[0] - a[0]) / len;
+    if (!ccw) { nx = -nx; ny = -ny; }
+    let ox = nx * scale, oy = -ny * scale; const on = Math.hypot(ox, oy) || 1;
+    const tx = px((a[0] + b[0]) / 2) + ox / on * 16, ty = py((a[1] + b[1]) / 2) + oy / on * 16;
+    out.push(`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" font-family="system-ui,sans-serif" font-size="13" font-weight="600" text-anchor="middle" dominant-baseline="middle" fill="#111">${len.toFixed(2)} m</text>`);
+  }
+  out.push("</svg>");
+  return out.join("");
+}
+
+document.getElementById("export-svg").onclick = () => {
+  if (!lastPlan) return;
+  downloadBlob("ceiling-plan.svg", new Blob([buildSVG(lastPlan)], { type: "image/svg+xml" }));
+};
+document.getElementById("export-png").onclick = () => {
+  if (!lastPlan) return;
+  const saved = { ...view };
+  fitView();
+  sketchCanvas.toBlob(bl => {
+    downloadBlob("ceiling-plan.png", bl);
+    Object.assign(view, saved); redraw();
+  }, "image/png");
+};
 
 document.getElementById("reset").onclick = resetAll;
 document.getElementById("compute").onclick = compute;

@@ -43,6 +43,15 @@ cursor, and dragging pans the view (when not in draw mode). A recenter (fit) con
 view so the whole outline fits and is centered. On each new plan the view starts fit and
 centered.
 
+### UI-EXPORT-001
+**Title:** Export the schema as PNG or SVG
+**Status:** validated
+**Dependencies:** UI-SCHEMA-001
+**Description:** The page can export the current plan schema: a PNG control downloads a raster
+image of the fitted schema, and an SVG control downloads a vector image built from the same plan
+data (outline, plates, montants, rails, edge labels). Both are generated client-side; nothing is
+exported when there is no plan.
+
 ### UI-RECT-001
 **Title:** Rectangle shortcut for outline entry
 **Status:** validated

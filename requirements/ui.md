@@ -34,6 +34,15 @@ magnetic to existing vertices: it snaps onto a nearby vertex, and onto the first
 close the outline — clicking while snapped to the first vertex closes the sketch. The user can
 refine the exact lengths and angles afterward, and can clear the sketch to start over.
 
+### UI-NAV-001
+**Title:** Zoom, pan and recenter the schema canvas
+**Status:** validated
+**Dependencies:** UI-SCHEMA-001
+**Description:** The schema canvas can be navigated: the mouse wheel zooms in and out around the
+cursor, and dragging pans the view (when not in draw mode). A recenter (fit) control resets the
+view so the whole outline fits and is centered. On each new plan the view starts fit and
+centered.
+
 ### UI-RECT-001
 **Title:** Rectangle shortcut for outline entry
 **Status:** validated

@@ -17,6 +17,7 @@ from ceiling_planner.geometry.scanline import interior_intervals
 from ceiling_planner.geometry.surface import Polygon
 
 _DEFAULT_SPACING_M = 0.60
+_DEFAULT_MIN_CLEARANCE_M = 0.10
 _BOUNDARY_INSET_M = 1e-9
 _MERGE_EPSILON_M = 1e-6
 
@@ -41,6 +42,7 @@ def compute_montants(
     spacing_m: float = _DEFAULT_SPACING_M,
     forced_offsets: list[float] | None = None,
     double_joints: bool = False,
+    min_clearance_m: float = _DEFAULT_MIN_CLEARANCE_M,
 ) -> list[Montant]:
     """Return the montant cut list for ``polygon`` at the given spacing (entraxe).
 
@@ -57,7 +59,9 @@ def compute_montants(
     y_min, y_max = min(ys), max(ys)
 
     joint_offsets = [o for o in (forced_offsets or []) if y_min < o < y_max]
-    offsets = _merge_offsets(_montant_offsets(y_min, y_max, spacing_m), joint_offsets)
+    offsets = _place_with_clearance(
+        _montant_offsets(y_min, y_max, spacing_m), joint_offsets, y_min, y_max, min_clearance_m
+    )
 
     montants: list[Montant] = []
     for offset in offsets:
@@ -92,13 +96,29 @@ def _montant_offsets(y_min: float, y_max: float, spacing_m: float) -> list[float
     return offsets
 
 
-def _merge_offsets(base: list[float], extra: list[float]) -> list[float]:
-    """Sorted union of two offset lists, collapsing values closer than the merge epsilon."""
-    merged: list[float] = []
-    for offset in sorted(base + extra):
-        if not merged or offset - merged[-1] > _MERGE_EPSILON_M:
-            merged.append(offset)
-    return merged
+def _place_with_clearance(
+    entraxe: list[float],
+    joints: list[float],
+    y_min: float,
+    y_max: float,
+    clearance: float,
+) -> list[float]:
+    """Combine entraxe and joint offsets so no two montants sit closer than ``clearance``.
+
+    The extremities and the forced joints take priority (placed first); an entraxe montant is
+    kept only when it clears every already-kept montant.
+    """
+    kept: list[float] = []
+
+    def add_if_clear(offset: float) -> None:
+        if all(abs(offset - k) >= clearance for k in kept):
+            kept.append(offset)
+
+    for offset in sorted([y_min, y_max, *joints]):  # mandatory: walls then joints
+        add_if_clear(offset)
+    for offset in entraxe:  # fillers where they clear the mandatory montants
+        add_if_clear(offset)
+    return sorted(kept)
 
 
 def _is_close_to_any(value: float, offsets: list[float]) -> bool:

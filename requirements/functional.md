@@ -60,7 +60,9 @@ An optional list of forced offsets places an extra montant at each given positio
 butt-joint positions), so a montant always backs a plasterboard joint; when the list is empty,
 no joints are forced. Those forced (joint) montants may be doubled back-to-back (each adjoining
 plate then screws to its own montant); doubling is off by default, and each montant reports
-whether it is doubled.
+whether it is doubled. No two montants may sit closer than a minimum clearance (default 0.10 m,
+they cannot overlap): the extremities and the forced joint montants take priority, and an
+entraxe montant that would fall within the clearance of a kept montant is dropped.
 
 ### FUNC-FRAMING-RAILS-001
 **Title:** Compute the perimeter rail cut list

@@ -106,9 +106,11 @@
     <span class="toggles">
       <label><input type="checkbox" id="toggle-montants" checked> montants</label>
       <label><input type="checkbox" id="toggle-rails" checked> rails</label>
+      <button id="fit" class="icon" title="Recenter / fit">⤢ fit</button>
     </span>
   </div>
   <canvas id="schema" width="900" height="620"></canvas>
+  <p style="font-size:12px;opacity:.6;margin:2px 0">Wheel to zoom · drag to pan · “fit” to recenter</p>
 </main>
 
 <script>
@@ -168,6 +170,7 @@ function interiorIntervals(vertices, y) {
 async function compute() {
   const errEl = document.getElementById("error");
   errEl.textContent = "";
+  view.zoom = 1; view.panX = 0; view.panY = 0;  // each new plan starts fit and centered
   const body = {
     edges: collectEdges(),
     montant_spacing_m: param("montant_spacing_m"),
@@ -192,6 +195,7 @@ async function compute() {
 }
 
 let lastPlan = null;
+const view = { zoom: 1, panX: 0, panY: 0 };  // navigation transform over the fitted plan
 
 function draw(data) {
   lastPlan = data;
@@ -199,6 +203,9 @@ function draw(data) {
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height, m = 54;  // margin leaves room for edge labels
   ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(view.panX, view.panY);
+  ctx.scale(view.zoom, view.zoom);
 
   const v = data.vertices;
   const xs = v.map(p => p[0]), ys = v.map(p => p[1]);
@@ -274,6 +281,7 @@ function draw(data) {
     ctx.fillText(len.toFixed(2) + " m", mx + (ox / on) * 16, my + (oy / on) * 16);
   }
   ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+  ctx.restore();
 
   const t = data.totals;
   document.getElementById("ind-montant").textContent = t.montant_length_m.toFixed(2);
@@ -421,6 +429,7 @@ function setVal(id, v) { document.getElementById(id).value = v; }
 
 function resetAll() {
   drawing = false; sketch = []; cursor = null; snapVertex = -1; lastPlan = null;
+  view.zoom = 1; view.panX = 0; view.panY = 0;
   document.getElementById("finish").hidden = true;
   document.getElementById("clear").hidden = true;
   document.getElementById("drawhint").hidden = true;
@@ -448,6 +457,43 @@ document.getElementById("rect-apply").onclick = () => {
   [[w, 90], [h, 90], [w, 90], [h, 90]].forEach(e => addEdge(e[0], e[1]));
   compute();
 };
+
+// ---- Canvas navigation: wheel zoom (around cursor), drag pan, fit/recenter ----
+function canvasPoint(e) {
+  const r = sketchCanvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (sketchCanvas.width / r.width),
+    y: (e.clientY - r.top) * (sketchCanvas.height / r.height),
+  };
+}
+sketchCanvas.addEventListener("wheel", e => {
+  if (drawing || !lastPlan) return;
+  e.preventDefault();
+  const { x, y } = canvasPoint(e);
+  const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+  view.panX = x - (x - view.panX) * factor;
+  view.panY = y - (y - view.panY) * factor;
+  view.zoom *= factor;
+  redraw();
+}, { passive: false });
+
+let panning = false, panStart = null;
+sketchCanvas.addEventListener("mousedown", e => {
+  if (drawing || !lastPlan) return;
+  panning = true;
+  panStart = { x: e.clientX, y: e.clientY, panX: view.panX, panY: view.panY };
+});
+window.addEventListener("mousemove", e => {
+  if (!panning) return;
+  const r = sketchCanvas.getBoundingClientRect();
+  view.panX = panStart.panX + (e.clientX - panStart.x) * (sketchCanvas.width / r.width);
+  view.panY = panStart.panY + (e.clientY - panStart.y) * (sketchCanvas.height / r.height);
+  redraw();
+});
+window.addEventListener("mouseup", () => { panning = false; });
+
+function fitView() { view.zoom = 1; view.panX = 0; view.panY = 0; redraw(); }
+document.getElementById("fit").onclick = fitView;
 
 document.getElementById("reset").onclick = resetAll;
 document.getElementById("compute").onclick = compute;

@@ -59,8 +59,11 @@ def compute_montants(
     y_min, y_max = min(ys), max(ys)
 
     joint_offsets = [o for o in (forced_offsets or []) if y_min < o < y_max]
+    # An entraxe montant within half the spacing of a wall or joint is dropped, so montants
+    # never pair up right next to a forced joint montant.
+    clearance = max(min_clearance_m, spacing_m / 2)
     offsets = _place_with_clearance(
-        _montant_offsets(y_min, y_max, spacing_m), joint_offsets, y_min, y_max, min_clearance_m
+        _montant_offsets(y_min, y_max, spacing_m), joint_offsets, y_min, y_max, clearance
     )
 
     montants: list[Montant] = []
@@ -108,16 +111,16 @@ def _place_with_clearance(
     The extremities and the forced joints take priority (placed first); an entraxe montant is
     kept only when it clears every already-kept montant.
     """
+    # Walls and forced joints are mandatory (a joint must be backed by its own montant); only
+    # near-coincident duplicates are collapsed.
     kept: list[float] = []
-
-    def add_if_clear(offset: float) -> None:
-        if all(abs(offset - k) >= clearance for k in kept):
+    for offset in sorted([y_min, y_max, *joints]):
+        if not kept or offset - kept[-1] > _MERGE_EPSILON_M:
             kept.append(offset)
 
-    for offset in sorted([y_min, y_max, *joints]):  # mandatory: walls then joints
-        add_if_clear(offset)
-    for offset in entraxe:  # fillers where they clear the mandatory montants
-        add_if_clear(offset)
+    for offset in entraxe:  # entraxe fillers, dropped when too close to a wall or joint montant
+        if all(abs(offset - k) >= clearance for k in kept):
+            kept.append(offset)
     return sorted(kept)
 
 

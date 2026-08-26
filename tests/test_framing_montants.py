@@ -112,12 +112,12 @@ def test_montant_carries_its_span_endpoints():
 
 @pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
 def test_forced_offsets_add_montants_at_plate_joints():
-    # Given forced offsets (plate butt joints) that miss the 1 m entraxe grid
+    # Given forced offsets (plate butt joints) 0.2 m from the 1 m entraxe grid
     montants = compute_montants(SQUARE, spacing_m=1.0, forced_offsets=[1.2, 2.4, 3.6])
 
-    # Then montants are forced at those joints as well as the entraxe grid
+    # Then the joints are present and the entraxe montants that would pair with them are dropped
     offsets = sorted(round(m.offset_m, 6) for m in montants)
-    assert offsets == pytest.approx([0.0, 1.0, 1.2, 2.0, 2.4, 3.0, 3.6, 4.0])
+    assert offsets == pytest.approx([0.0, 1.2, 2.4, 3.0, 3.6, 4.0])
 
 
 @pytest.mark.req("FUNC-FRAMING-MONTANTS-001")
@@ -131,7 +131,7 @@ def test_joint_montants_can_be_doubled():
     doubled = sorted(round(m.offset_m, 6) for m in montants if m.doubled)
     plain = sorted(round(m.offset_m, 6) for m in montants if not m.doubled)
     assert doubled == pytest.approx([1.2, 2.4, 3.6])
-    assert plain == pytest.approx([0.0, 1.0, 2.0, 3.0, 4.0])
+    assert plain == pytest.approx([0.0, 3.0, 4.0])
 
 
 @pytest.mark.req("FUNC-FRAMING-MONTANTS-001")

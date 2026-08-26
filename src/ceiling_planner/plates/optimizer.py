@@ -10,7 +10,7 @@ records every placed piece so the layout can be drawn on the schema.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ceiling_planner.geometry.scanline import interior_intervals
 from ceiling_planner.geometry.surface import Polygon
@@ -63,12 +63,16 @@ def optimize_plates(
     min_offcut_m: float = _DEFAULT_MIN_OFFCUT_M,
     joint_mode: str = REUSE,
     stagger_m: float | None = None,
+    seam_grid_m: float | None = None,
 ) -> PlatePlan:
     """Return the :class:`PlatePlan` covering ``polygon`` under the chosen ``joint_mode``.
 
     ``plate_length_m`` and ``plate_width_m`` must be strictly positive, ``min_offcut_m`` must be
     non-negative, and ``joint_mode`` one of ``reuse``, ``aligned``, ``running_bond``; otherwise
-    :class:`ValueError` is raised. ``stagger_m`` defaults to half a plate length.
+    :class:`ValueError` is raised. ``stagger_m`` defaults to half a plate length. When
+    ``seam_grid_m`` is given, the effective plate length and stagger snap down to a multiple of it
+    so every seam lands on that grid (the montant entraxe); plates are still billed at full stock
+    length, so the trim is counted as waste.
     """
     if plate_length_m <= 0 or plate_width_m <= 0:
         raise ValueError("plate dimensions must be strictly positive")
@@ -76,8 +80,15 @@ def optimize_plates(
         raise ValueError("min_offcut_m must be non-negative")
     if joint_mode not in _JOINT_MODES:
         raise ValueError(f"unknown joint_mode: {joint_mode}")
+
+    stock_length_m = plate_length_m
+    if seam_grid_m is not None and seam_grid_m > 0:
+        steps = max(1, math.floor(plate_length_m / seam_grid_m + 1e-9))
+        plate_length_m = steps * seam_grid_m  # seams fall on the montant grid
     if stagger_m is None:
         stagger_m = plate_length_m / 2
+        if seam_grid_m is not None and seam_grid_m > 0:
+            stagger_m = max(1, round((plate_length_m / 2) / seam_grid_m)) * seam_grid_m
 
     strips = _strips(polygon, plate_width_m)
     if joint_mode == REUSE:
@@ -85,8 +96,16 @@ def optimize_plates(
     else:
         pieces, plate_count = _layout_regular(strips, plate_length_m, joint_mode, stagger_m)
 
+    # A piece in a strip narrower than a full plate is cut lengthwise, so it is never a full plate.
+    pieces = [
+        replace(p, kind=CUT)
+        if p.kind == FULL and (p.y_max_m - p.y_min_m) < plate_width_m - _EPSILON_M
+        else p
+        for p in pieces
+    ]
+
     covered_length_m = math.fsum(p.x_end_m - p.x_start_m for p in pieces)
-    waste_length_m = plate_count * plate_length_m - covered_length_m
+    waste_length_m = plate_count * stock_length_m - covered_length_m
     return PlatePlan(
         plate_count=plate_count,
         covered_length_m=covered_length_m,

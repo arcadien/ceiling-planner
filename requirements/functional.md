@@ -114,6 +114,9 @@ when it is at least a minimum usable length (default 0.30 m), minimizing waste b
 irregular seams; `aligned` restarts a full plate in each strip so seams line up on a regular
 grid; `running_bond` offsets each strip by a fixed stagger (default half a plate length) for
 regular staggered seams. `aligned` and `running_bond` do not reuse offcuts and so accept more
-waste. Non-positive dimensions and an unknown `joint_mode` are rejected. The layout lists every
-placed piece — strip band, bearing-direction extent, and kind (`full`, `cut`, or `reused`) — and
-summarizes the plate count, the covered length, and the wasted length.
+waste. Non-positive dimensions and an unknown `joint_mode` are rejected. An optional seam grid
+snaps the effective plate length and stagger down to a multiple of it so every seam falls on that
+grid (the montant entraxe); plates are still billed at full stock length so the trim counts as
+waste. A piece in a strip narrower than a full plate is cut lengthwise, so it is never a full
+plate. The layout lists every placed piece — strip band, bearing-direction extent, and kind
+(`full`, `cut`, or `reused`) — and summarizes the plate count, the covered length, and the waste.

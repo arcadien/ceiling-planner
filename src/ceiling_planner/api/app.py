@@ -116,6 +116,7 @@ def plan(request: PlanRequest) -> JSONResponse | dict:
             plate_width_m=request.plate_width_m,
             min_offcut_m=request.min_offcut_m,
             joint_mode=request.joint_mode,
+            seam_grid_m=request.montant_spacing_m,  # seams land on the montant grid
         )
         # Plate butt joints run parallel to the montants, so a montant is forced under each one.
         butt_joint_offsets = sorted({round(e.x_m, 6) for e in compute_entretoises(plates.pieces)})

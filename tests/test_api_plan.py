@@ -60,10 +60,12 @@ def test_butt_joints_are_backed_by_forced_montants_not_entretoises():
     ]
     data = client.post("/plan", json={"edges": edges, "joint_mode": "aligned"}).json()
 
-    # Then no entretoises are emitted; instead a montant is forced under the 2.5 m butt joint
+    # Then no entretoises are emitted; the seam snaps to the 0.60 m grid (2.4 m) and a montant
+    # sits there, and the montants keep a regular 0.60 m entraxe
     assert data["bearing"] == "x"
     assert data["entretoises"] == []
-    assert any(m["offset_m"] == pytest.approx(2.5) for m in data["montants"])
+    offsets = sorted({round(m["offset_m"], 3) for m in data["montants"]})
+    assert offsets == pytest.approx([0.0, 0.6, 1.2, 1.8, 2.4, 3.0, 3.6, 4.0])
 
 
 @pytest.mark.req("TECH-API-PLAN-001")
@@ -106,15 +108,15 @@ def test_optional_parameters_are_honored():
 
 
 @pytest.mark.req("TECH-API-PLAN-001")
-def test_montants_are_forced_at_plate_joints():
-    # Given a coarse spacing and aligned joints (plate seam at 2.5 m along the length)
+def test_montants_keep_a_regular_entraxe():
+    # Given a 0.50 m entraxe (a divisor of the room) with aligned joints
     response = client.post(
-        "/plan", json={"edges": SQUARE_EDGES, "montant_spacing_m": 4.0, "joint_mode": "aligned"}
+        "/plan", json={"edges": SQUARE_EDGES, "montant_spacing_m": 0.5, "joint_mode": "aligned"}
     )
 
-    # Then a montant is forced at the 2.5 m butt joint on top of the extremities
-    offsets = sorted(m["offset_m"] for m in response.json()["montants"])
-    assert offsets == pytest.approx([0.0, 2.5, 4.0])
+    # Then montants sit on a regular 0.50 m grid (seams snap onto it, no irregular extra montant)
+    offsets = sorted({round(m["offset_m"], 3) for m in response.json()["montants"]})
+    assert offsets == pytest.approx([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0])
 
 
 @pytest.mark.req("TECH-API-PLAN-001")
